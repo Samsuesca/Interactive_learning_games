@@ -4,6 +4,7 @@ import CapitalesSudamerica from "./games/capitales-sudamerica";
 import BanderasMundo from "./games/banderas-mundo";
 import QueAnimalSoy from "./games/que-animal-soy";
 import FigurasGeometricas from "./games/figuras-geometricas";
+import MonumentosFamosos from "./games/monumentos-famosos";
 
 const games = [
   {
@@ -45,6 +46,14 @@ const games = [
     icon: "📐",
     gradient: "linear-gradient(135deg, #667eea, #764ba2)",
     component: FigurasGeometricas,
+  },
+  {
+    path: "/monumentos-famosos",
+    title: "Monumentos Famosos",
+    desc: "Ubica los monumentos más icónicos del mundo en un mapa interactivo.",
+    icon: "🏛️",
+    gradient: "linear-gradient(135deg, #FF8F00, #F4511E)",
+    component: MonumentosFamosos,
   },
 ];
 
