@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import ExploraColombia from "./games/explora-colombia";
 import CapitalesSudamerica from "./games/capitales-sudamerica";
+import BanderasMundo from "./games/banderas-mundo";
 
 const games = [
   {
@@ -18,6 +19,14 @@ const games = [
     icon: "🌎",
     gradient: "linear-gradient(135deg, #11998e, #38ef7d)",
     component: CapitalesSudamerica,
+  },
+  {
+    path: "/banderas-mundo",
+    title: "Banderas del Mundo",
+    desc: "Aprende las banderas, capitales y datos de 50 países de todo el mundo.",
+    icon: "🌍",
+    gradient: "linear-gradient(135deg, #0052D4, #6FB1FC)",
+    component: BanderasMundo,
   },
 ];
 
