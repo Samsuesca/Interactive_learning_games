@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import ExploraColombia from "./games/explora-colombia";
 import CapitalesSudamerica from "./games/capitales-sudamerica";
+import PalabrasRevueltas from "./games/palabras-revueltas";
 
 const games = [
   {
@@ -18,6 +19,14 @@ const games = [
     icon: "🌎",
     gradient: "linear-gradient(135deg, #11998e, #38ef7d)",
     component: CapitalesSudamerica,
+  },
+  {
+    path: "/palabras-revueltas",
+    title: "Palabras Revueltas",
+    desc: "Ordena las letras y forma la palabra correcta. Animales, frutas, países y más.",
+    icon: "🔤",
+    gradient: "linear-gradient(135deg, #667eea, #764ba2)",
+    component: PalabrasRevueltas,
   },
 ];
 
