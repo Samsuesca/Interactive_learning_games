@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import ExploraColombia from "./games/explora-colombia";
 import CapitalesSudamerica from "./games/capitales-sudamerica";
+import MonumentosFamosos from "./games/monumentos-famosos";
 
 const games = [
   {
@@ -18,6 +19,14 @@ const games = [
     icon: "🌎",
     gradient: "linear-gradient(135deg, #11998e, #38ef7d)",
     component: CapitalesSudamerica,
+  },
+  {
+    path: "/monumentos-famosos",
+    title: "Monumentos Famosos",
+    desc: "Ubica los monumentos más icónicos del mundo en un mapa interactivo.",
+    icon: "🏛️",
+    gradient: "linear-gradient(135deg, #FF8F00, #F4511E)",
+    component: MonumentosFamosos,
   },
 ];
 
