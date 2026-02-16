@@ -1,38 +1,40 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { geoMercator, geoPath, geoCentroid } from "d3-geo";
+import colombiaGeo from "./colombia-geo.js";
 
 const DEPTS = [
-  { dept:"Amazonas", cap:"Leticia", x:227, y:396, r:"amazonia" },
-  { dept:"Antioquia", cap:"Medellín", x:82, y:144, r:"andina" },
-  { dept:"Arauca", cap:"Arauca", x:200, y:120, r:"orinoquia" },
-  { dept:"Atlántico", cap:"Barranquilla", x:112, y:32, r:"caribe" },
-  { dept:"Bolívar", cap:"Cartagena", x:92, y:58, r:"caribe" },
-  { dept:"Boyacá", cap:"Tunja", x:138, y:155, r:"andina" },
-  { dept:"Caldas", cap:"Manizales", x:80, y:168, r:"andina" },
-  { dept:"Caquetá", cap:"Florencia", x:90, y:258, r:"amazonia" },
-  { dept:"Casanare", cap:"Yopal", x:168, y:160, r:"orinoquia" },
-  { dept:"Cauca", cap:"Popayán", x:60, y:236, r:"pacifica" },
-  { dept:"Cesar", cap:"Valledupar", x:148, y:42, r:"caribe" },
-  { dept:"Chocó", cap:"Quibdó", x:55, y:158, r:"pacifica" },
-  { dept:"Córdoba", cap:"Montería", x:78, y:82, r:"caribe" },
-  { dept:"Cundinamarca", cap:"Bogotá", x:118, y:185, r:"andina" },
-  { dept:"Guainía", cap:"Inírida", x:272, y:205, r:"amazonia" },
-  { dept:"Guaviare", cap:"San José del Guaviare", x:165, y:238, r:"amazonia" },
-  { dept:"Huila", cap:"Neiva", x:96, y:228, r:"andina" },
-  { dept:"La Guajira", cap:"Riohacha", x:168, y:15, r:"caribe" },
-  { dept:"Magdalena", cap:"Santa Marta", x:130, y:22, r:"caribe" },
-  { dept:"Meta", cap:"Villavicencio", x:140, y:200, r:"orinoquia" },
-  { dept:"Nariño", cap:"Pasto", x:43, y:262, r:"pacifica" },
-  { dept:"Norte de Santander", cap:"Cúcuta", x:168, y:100, r:"andina" },
-  { dept:"Putumayo", cap:"Mocoa", x:66, y:275, r:"amazonia" },
-  { dept:"Quindío", cap:"Armenia", x:88, y:190, r:"andina" },
-  { dept:"Risaralda", cap:"Pereira", x:72, y:180, r:"andina" },
-  { dept:"San Andrés y Providencia", cap:"San Andrés", x:18, y:18, r:"insular" },
-  { dept:"Santander", cap:"Bucaramanga", x:148, y:120, r:"andina" },
-  { dept:"Sucre", cap:"Sincelejo", x:88, y:70, r:"caribe" },
-  { dept:"Tolima", cap:"Ibagué", x:94, y:195, r:"andina" },
-  { dept:"Valle del Cauca", cap:"Cali", x:62, y:212, r:"pacifica" },
-  { dept:"Vaupés", cap:"Mitú", x:220, y:268, r:"amazonia" },
-  { dept:"Vichada", cap:"Puerto Carreño", x:285, y:148, r:"orinoquia" },
+  { dept:"Amazonas", cap:"Leticia", r:"amazonia" },
+  { dept:"Antioquia", cap:"Medellín", r:"andina" },
+  { dept:"Arauca", cap:"Arauca", r:"orinoquia" },
+  { dept:"Atlántico", cap:"Barranquilla", r:"caribe" },
+  { dept:"Bolívar", cap:"Cartagena", r:"caribe" },
+  { dept:"Boyacá", cap:"Tunja", r:"andina" },
+  { dept:"Caldas", cap:"Manizales", r:"andina" },
+  { dept:"Caquetá", cap:"Florencia", r:"amazonia" },
+  { dept:"Casanare", cap:"Yopal", r:"orinoquia" },
+  { dept:"Cauca", cap:"Popayán", r:"pacifica" },
+  { dept:"Cesar", cap:"Valledupar", r:"caribe" },
+  { dept:"Chocó", cap:"Quibdó", r:"pacifica" },
+  { dept:"Córdoba", cap:"Montería", r:"caribe" },
+  { dept:"Cundinamarca", cap:"Bogotá", r:"andina" },
+  { dept:"Guainía", cap:"Inírida", r:"amazonia" },
+  { dept:"Guaviare", cap:"San José del Guaviare", r:"amazonia" },
+  { dept:"Huila", cap:"Neiva", r:"andina" },
+  { dept:"La Guajira", cap:"Riohacha", r:"caribe" },
+  { dept:"Magdalena", cap:"Santa Marta", r:"caribe" },
+  { dept:"Meta", cap:"Villavicencio", r:"orinoquia" },
+  { dept:"Nariño", cap:"Pasto", r:"pacifica" },
+  { dept:"Norte de Santander", cap:"Cúcuta", r:"andina" },
+  { dept:"Putumayo", cap:"Mocoa", r:"amazonia" },
+  { dept:"Quindío", cap:"Armenia", r:"andina" },
+  { dept:"Risaralda", cap:"Pereira", r:"andina" },
+  { dept:"San Andrés y Providencia", cap:"San Andrés", r:"insular" },
+  { dept:"Santander", cap:"Bucaramanga", r:"andina" },
+  { dept:"Sucre", cap:"Sincelejo", r:"caribe" },
+  { dept:"Tolima", cap:"Ibagué", r:"andina" },
+  { dept:"Valle del Cauca", cap:"Cali", r:"pacifica" },
+  { dept:"Vaupés", cap:"Mitú", r:"amazonia" },
+  { dept:"Vichada", cap:"Puerto Carreño", r:"orinoquia" },
 ];
 
 const REGIONS = {
@@ -44,7 +46,6 @@ const REGIONS = {
   insular: { name:"Insular", color:"#AB47BC", emoji:"🏝️" },
 };
 
-const MAP_PATH = "M60,118 L68,105 L78,95 L88,78 L98,65 L110,48 L125,38 L145,34 L160,28 L178,22 L195,16 L210,8 L215,18 L210,32 L198,52 L190,68 L188,88 L186,108 L190,128 L200,138 L220,142 L255,148 L285,152 L305,162 L310,180 L308,200 L305,225 L298,260 L280,290 L262,310 L250,340 L244,370 L240,400 L236,418 L230,420 L200,390 L170,365 L145,340 L115,318 L90,305 L68,290 L52,278 L42,262 L40,240 L44,222 L50,208 L52,190 L50,172 L52,155 L56,140 L58,128 Z";
 const EMOJIS = ["🎉","⭐","🌟","💫","🎊","🏆","👏","💪","🇨🇴","🦜","☕","🌺"];
 
 function shuffle(a) {
@@ -139,10 +140,160 @@ function OptionButton({ text, sel, cor, onClick }) {
   );
 }
 
+/* =================== COLOMBIA MAP COMPONENT =================== */
+const MAP_W = 480;
+const MAP_H = 560;
+
+function useColombiaMap() {
+  return useMemo(() => {
+    const projection = geoMercator().fitSize([MAP_W, MAP_H], colombiaGeo);
+    const pathGen = geoPath().projection(projection);
+
+    const deptMap = new Map();
+    DEPTS.forEach((d, i) => deptMap.set(d.dept, { ...d, idx: i }));
+
+    const features = colombiaGeo.features.map(feat => {
+      const name = feat.properties.name;
+      const info = deptMap.get(name);
+      const centroid = pathGen.centroid(feat);
+      return {
+        feat,
+        name,
+        path: pathGen(feat),
+        centroid,
+        info,
+      };
+    }).filter(f => f.info);
+
+    return { projection, pathGen, features };
+  }, []);
+}
+
+function ColombiaMapSVG({ sel, found, hovered, setHovered, onClickDept, mode }) {
+  const { features } = useColombiaMap();
+
+  return (
+    <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width:"100%", height:"auto", maxHeight:"60vh" }}>
+      <defs>
+        <filter id="mapShadow">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.15" />
+        </filter>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+
+      {features.map(({ feat, name, path, info }) => {
+        if (!info || !path) return null;
+        const rc = REGIONS[info.r];
+        const isSel = sel === name;
+        const isHov = hovered === name;
+        const isFound = found.has(name);
+
+        let fill = rc.color + "55";
+        let strokeW = 0.8;
+        let stroke = "#fff";
+
+        if (isSel) {
+          fill = rc.color;
+          strokeW = 2;
+          stroke = "#fff";
+        } else if (isHov) {
+          fill = rc.color + "99";
+          strokeW = 1.5;
+          stroke = "#fff";
+        } else if (isFound) {
+          fill = rc.color + "88";
+        }
+
+        if (mode === "findIt" && !isSel) {
+          fill = isFound ? rc.color + "88" : "#e0e0e0";
+          stroke = isFound ? "#fff" : "#ccc";
+        }
+
+        return (
+          <g key={name}>
+            <path
+              d={path}
+              fill={fill}
+              stroke={stroke}
+              strokeWidth={strokeW}
+              strokeLinejoin="round"
+              style={{ cursor:"pointer", transition:"fill 0.2s, stroke-width 0.2s" }}
+              onClick={() => onClickDept(name)}
+              onMouseEnter={() => setHovered(name)}
+              onMouseLeave={() => setHovered(null)}
+            />
+          </g>
+        );
+      })}
+
+      {/* Labels for selected department */}
+      {features.map(({ name, centroid, info }) => {
+        if (!info || sel !== name) return null;
+        const rc = REGIONS[info.r];
+        const [cx, cy] = centroid;
+        if (isNaN(cx) || isNaN(cy)) return null;
+
+        const labelW = 150;
+        const labelH = 52;
+        const labelX = Math.max(5, Math.min(cx - labelW / 2, MAP_W - labelW - 5));
+        const labelY = cy - labelH - 12;
+        const clampedY = Math.max(5, labelY);
+
+        return (
+          <g key={`label-${name}`} style={{ pointerEvents: "none" }}>
+            <rect
+              x={labelX} y={clampedY}
+              width={labelW} height={labelH}
+              rx="10" fill="white" stroke={rc.color} strokeWidth="2"
+              filter="url(#mapShadow)"
+            />
+            <polygon
+              points={`${cx - 6},${clampedY + labelH} ${cx + 6},${clampedY + labelH} ${cx},${clampedY + labelH + 8}`}
+              fill="white" stroke={rc.color} strokeWidth="1.5"
+            />
+            <text x={labelX + labelW / 2} y={clampedY + 18} textAnchor="middle" fontSize="12" fontWeight="800" fill="#333">
+              {info.dept}
+            </text>
+            <text x={labelX + labelW / 2} y={clampedY + 33} textAnchor="middle" fontSize="11" fill={rc.color} fontWeight="600">
+              🏛️ {info.cap}
+            </text>
+            <text x={labelX + labelW / 2} y={clampedY + 46} textAnchor="middle" fontSize="9" fill="#999">
+              {rc.emoji} Región {rc.name}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Hover tooltip (when not selected) */}
+      {hovered && hovered !== sel && features.map(({ name, centroid, info }) => {
+        if (!info || name !== hovered) return null;
+        const [cx, cy] = centroid;
+        if (isNaN(cx) || isNaN(cy)) return null;
+        return (
+          <g key={`hover-${name}`} style={{ pointerEvents: "none" }}>
+            <rect
+              x={cx - 50} y={cy - 28}
+              width="100" height="22"
+              rx="6" fill="rgba(0,0,0,0.75)"
+            />
+            <text x={cx} y={cy - 13} textAnchor="middle" fontSize="10" fontWeight="700" fill="#fff">
+              {info.dept}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 /* =================== MAP MODE =================== */
 function MapMode({ onBack }) {
   const [sel, setSel] = useState(null);
   const [found, setFound] = useState(new Set());
+  const [hovered, setHovered] = useState(null);
   const [mode, setMode] = useState("explore");
   const [target, setTarget] = useState(null);
   const [msg, setMsg] = useState("");
@@ -150,23 +301,32 @@ function MapMode({ onBack }) {
   const [conf, setConf] = useState(0);
   const [queue, setQueue] = useState([]);
 
+  const deptByName = useMemo(() => {
+    const m = new Map();
+    DEPTS.forEach(d => m.set(d.dept, d));
+    return m;
+  }, []);
+
   const startFind = () => {
     const q = shuffle([...DEPTS]);
     setQueue(q); setTarget(q[0]); setMode("findIt");
     setFScore(0); setMsg(""); setSel(null); setFound(new Set());
   };
 
-  const handleDot = (d, i) => {
+  const handleClick = (name) => {
+    const d = deptByName.get(name);
+    if (!d) return;
+
     if (mode === "explore") {
-      setSel(sel === i ? null : i);
-      setFound(s => { const n = new Set(s); n.add(i); return n; });
+      setSel(sel === name ? null : name);
+      setFound(s => { const n = new Set(s); n.add(name); return n; });
     } else if (mode === "findIt" && target) {
       if (d.dept === target.dept) {
         setFScore(s => s + 1);
         setMsg("✅ ¡Correcto!");
         setConf(c => c + 1);
-        setFound(s => { const n = new Set(s); n.add(i); return n; });
-        setSel(i);
+        setFound(s => { const n = new Set(s); n.add(name); return n; });
+        setSel(name);
         setTimeout(() => {
           const nq = [...queue]; nq.shift();
           if (nq.length === 0) { setMode("explore"); setMsg("🏆 ¡Encontraste todos!"); return; }
@@ -182,7 +342,7 @@ function MapMode({ onBack }) {
   return (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12, padding:"0 8px" }}>
       <Confetti active={conf} />
-      <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:440, alignItems:"center", flexWrap:"wrap", gap:8 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:480, alignItems:"center", flexWrap:"wrap", gap:8 }}>
         <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
         <div style={{ display:"flex", gap:8 }}>
           <button onClick={() => { setMode("explore"); setSel(null); setMsg(""); }} style={pill(mode === "explore" ? "#667eea" : "#e0e0e0", mode === "explore" ? "#fff" : "#333")}>🔍 Explorar</button>
@@ -191,7 +351,7 @@ function MapMode({ onBack }) {
       </div>
 
       {mode === "explore" && (
-        <div style={{ fontSize:13, color:"#888" }}>📍 Toca un punto para ver info ({found.size}/32 explorados)</div>
+        <div style={{ fontSize:13, color:"#888" }}>📍 Toca un departamento para ver info ({found.size}/32 explorados)</div>
       )}
 
       {mode === "findIt" && target && (
@@ -203,45 +363,18 @@ function MapMode({ onBack }) {
 
       {msg && <div style={{ fontSize:16, fontWeight:700, textAlign:"center", padding:4 }}>{msg}</div>}
 
-      <div style={{ width:"100%", maxWidth:440, position:"relative" }}>
-        <svg viewBox="-5 -5 340 440" style={{ width:"100%", height:"auto" }}>
-          <defs>
-            <filter id="glow"><feGaussianBlur stdDeviation="2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-            <linearGradient id="mapGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#e8f5e9" /><stop offset="100%" stopColor="#f1f8e9" /></linearGradient>
-          </defs>
-          <path d={MAP_PATH} fill="url(#mapGrad)" stroke="#81C784" strokeWidth="2.5" strokeLinejoin="round" />
-          <rect x="6" y="6" width="26" height="26" rx="6" fill="#f3e5f5" stroke="#AB47BC" strokeWidth="1" strokeDasharray="3,2" />
-          <text x="19" y="16" textAnchor="middle" fontSize="5" fill="#AB47BC" fontWeight="600">Isla</text>
-
-          {DEPTS.map((d, i) => {
-            const rc = REGIONS[d.r];
-            const isSel = sel === i;
-            const isFound = found.has(i);
-            return (
-              <g key={d.dept} onClick={() => handleDot(d, i)} style={{ cursor:"pointer" }}>
-                {isSel && (
-                  <circle cx={d.x} cy={d.y} r="14" fill={rc.color} opacity="0.15">
-                    <animate attributeName="r" values="12;18;12" dur="1.5s" repeatCount="indefinite" />
-                  </circle>
-                )}
-                <circle cx={d.x} cy={d.y} r={isSel ? 7 : 5} fill={rc.color} stroke="#fff" strokeWidth="1.5"
-                  filter={isSel ? "url(#glow)" : ""} opacity={isFound ? 1 : 0.75} />
-                {isSel && (
-                  <g>
-                    <rect x={d.x - 55} y={d.y - 48} width="110" height="38" rx="8" fill="white" stroke={rc.color} strokeWidth="1.5" style={{ filter:"drop-shadow(0 2px 6px rgba(0,0,0,0.15))" }} />
-                    <polygon points={`${d.x - 5},${d.y - 10} ${d.x + 5},${d.y - 10} ${d.x},${d.y - 4}`} fill="white" stroke={rc.color} strokeWidth="1" />
-                    <text x={d.x} y={d.y - 33} textAnchor="middle" fontSize="7" fontWeight="800" fill="#333">{d.dept}</text>
-                    <text x={d.x} y={d.y - 22} textAnchor="middle" fontSize="6.5" fill={rc.color} fontWeight="600">🏛️ {d.cap}</text>
-                    <text x={d.x} y={d.y - 13} textAnchor="middle" fontSize="5" fill="#999">{rc.emoji} {rc.name}</text>
-                  </g>
-                )}
-              </g>
-            );
-          })}
-        </svg>
+      <div style={{ width:"100%", maxWidth:480, position:"relative", background:"#f8fffe", borderRadius:16, padding:8, boxShadow:"0 4px 20px rgba(0,0,0,0.08)" }}>
+        <ColombiaMapSVG
+          sel={sel}
+          found={found}
+          hovered={hovered}
+          setHovered={setHovered}
+          onClickDept={handleClick}
+          mode={mode}
+        />
       </div>
 
-      <div style={{ display:"flex", flexWrap:"wrap", gap:8, justifyContent:"center", maxWidth:440 }}>
+      <div style={{ display:"flex", flexWrap:"wrap", gap:8, justifyContent:"center", maxWidth:480 }}>
         {Object.entries(REGIONS).map(([k, v]) => (
           <div key={k} style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, background:"#fff", padding:"4px 10px", borderRadius:20, border:`2px solid ${v.color}`, color:v.color }}>
             <span>{v.emoji}</span>{v.name}
@@ -543,6 +676,7 @@ export default function ExploraColombia() {
 }
 
 const gameCtn = {
+  fontFamily:"'Segoe UI',system-ui,-apple-system,sans-serif",
   maxWidth:480, margin:"0 auto", padding:"24px 12px", minHeight:"100vh",
   background:"linear-gradient(180deg,#fef9f0 0%,#fff5f5 50%,#f0f4ff 100%)"
 };
