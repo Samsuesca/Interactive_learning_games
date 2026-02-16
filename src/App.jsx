@@ -3,6 +3,7 @@ import ExploraColombia from "./games/explora-colombia";
 import CapitalesSudamerica from "./games/capitales-sudamerica";
 import BanderasMundo from "./games/banderas-mundo";
 import QueAnimalSoy from "./games/que-animal-soy";
+import FigurasGeometricas from "./games/figuras-geometricas";
 
 const games = [
   {
@@ -36,6 +37,14 @@ const games = [
     icon: "🐾",
     gradient: "linear-gradient(135deg, #f5af19, #f12711)",
     component: QueAnimalSoy,
+  },
+  {
+    path: "/figuras-geometricas",
+    title: "Figuras Geométricas",
+    desc: "Aprende figuras 2D, polígonos y volúmenes 3D con fórmulas, propiedades y quiz interactivos.",
+    icon: "📐",
+    gradient: "linear-gradient(135deg, #667eea, #764ba2)",
+    component: FigurasGeometricas,
   },
 ];
 
