@@ -1,3 +1,489 @@
+<!-- AUTO-GENERATED GIT WORKFLOW HEADER -->
+<!-- Version: 1.0.0 | Template: GIT_WORKFLOW_EDUCATIONAL.md | Last Updated: 2026-02-16 -->
+<!-- DO NOT EDIT MANUALLY - Run: ~/.claude/scripts/sync-git-workflow.sh -->
+
+---
+
+# Git Workflow & Commit Standards
+
+**Version:** 1.0.0
+**Last Updated:** 2026-02-15
+**Template Type:** Educational & Interactive Learning Projects
+
+---
+
+## Branch Strategy
+
+### Main Branches
+
+- **`main`** - Production-ready content. Deployed to live site.
+  - Only merge via Pull Requests
+  - All content must be reviewed for accuracy
+  - Mathematical content must be validated
+
+- **`develop`** - Integration branch for new content
+  - Merge content branches here first
+  - Test interactive components before merging to main
+  - Base branch for new lessons/modules
+
+### Supporting Branches
+
+- **`content/*`** - New educational content
+  - Branch from: `develop`
+  - Merge into: `develop`
+  - Naming: `content/game-theory-basics`, `content/supply-demand-interactive`
+
+- **`feature/*`** - New interactive features
+  - Branch from: `develop`
+  - Merge into: `develop`
+  - Naming: `feature/interactive-graph`, `feature/quiz-system`
+
+- **`bugfix/*`** - Content or code fixes
+  - Branch from: `develop`
+  - Merge into: `develop`
+  - Naming: `bugfix/math-rendering`, `bugfix/typo-in-lesson-3`
+
+---
+
+## Commit Convention
+
+### Format
+
+```
+<emoji> <type>: <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Commit Types with Emojis
+
+```bash
+✨ feat:       New interactive feature or component
+🐛 fix:        Bug fix or content correction
+♻️ refactor:   Code restructuring
+📚 docs:       Documentation or non-content text
+✅ test:       Testing interactive components
+🔒 security:   Security fixes
+⚡ perf:       Performance optimization
+🚀 chore:      Dependencies, build config
+📝 content:    New educational content (lessons, modules)
+🎨 style:      Visual styling, animations
+🧮 math:       Mathematical content or LaTeX
+🎮 interactive: Interactive exercises, games
+♿ a11y:       Accessibility improvements
+```
+
+### Examples
+
+**Good commits:**
+```bash
+✨ feat: add interactive supply and demand graph
+📝 content: create microeconomics module 1 - elasticity
+🧮 math: add LaTeX equations for utility maximization
+🐛 fix: correct formula in consumer surplus example
+🎮 interactive: implement drag-and-drop game for market equilibrium
+♿ a11y: add ARIA labels to interactive graphs
+📚 docs: update README with content guidelines
+```
+
+---
+
+## Content Review Process
+
+### Before Committing Educational Content
+
+- [ ] **Mathematical accuracy** - Formulas verified
+- [ ] **Conceptual correctness** - Economics/math concepts accurate
+- [ ] **Clarity** - Explanations understandable for target audience
+- [ ] **Examples tested** - Numerical examples calculated correctly
+- [ ] **Citations added** - Sources for definitions/theorems
+- [ ] **Accessibility** - Alt text for images, ARIA labels
+- [ ] **Mobile responsive** - Works on small screens
+
+### Mathematical Validation Checklist
+
+For any content with math:
+
+- [ ] **LaTeX compiles** - No syntax errors
+- [ ] **Formulas correct** - Verified against textbooks
+- [ ] **Units consistent** - If applicable (e.g., currency, time)
+- [ ] **Edge cases handled** - Division by zero, negative values
+- [ ] **Numerical examples** - Manually calculated to verify
+
+Example:
+```latex
+% BAD - Incorrect formula
+\text{Elasticity} = \frac{Q}{P}
+
+% GOOD - Correct formula
+\text{Elasticity} = \frac{\% \Delta Q}{\% \Delta P}
+```
+
+---
+
+## Standard Workflows
+
+### 1. Creating New Educational Content
+
+```bash
+# 1. Start from develop
+git checkout develop
+git pull origin develop
+
+# 2. Create content branch
+git checkout -b content/game-theory-nash-equilibrium
+
+# 3. Write content
+# Edit: content/lessons/game-theory/nash-equilibrium.mdx
+
+# 4. Add interactive components
+# Edit: components/GameTheoryMatrix.tsx
+
+# 5. Validate math
+# Check LaTeX rendering locally
+npm run dev
+
+# 6. Commit content
+git add content/lessons/game-theory/
+git add components/GameTheoryMatrix.tsx
+git commit -m "📝 content: add Nash equilibrium lesson with interactive matrix"
+
+# 7. Push and create PR
+git push -u origin content/game-theory-nash-equilibrium
+```
+
+### 2. Adding Interactive Feature
+
+```bash
+# 1. Start from develop
+git checkout develop
+git pull origin develop
+
+# 2. Create feature branch
+git checkout -b feature/interactive-demand-curve
+
+# 3. Implement component
+# Edit: components/InteractiveDemandCurve.tsx
+
+# 4. Test interactivity
+npm run dev
+# Manually test: drag points, zoom, reset
+
+# 5. Add tests (if applicable)
+# Edit: tests/InteractiveDemandCurve.test.tsx
+
+# 6. Commit
+git add components/InteractiveDemandCurve.tsx tests/
+git commit -m "✨ feat: add interactive demand curve with draggable points"
+
+# 7. Push and create PR
+git push -u origin feature/interactive-demand-curve
+```
+
+### 3. Fixing Content Errors
+
+```bash
+# 1. Start from develop
+git checkout develop
+git pull origin develop
+
+# 2. Create bugfix branch
+git checkout -b bugfix/correct-elasticity-formula
+
+# 3. Fix error
+# Edit: content/lessons/elasticity.mdx
+
+# 4. Verify fix
+npm run dev
+# Check formula renders correctly
+
+# 5. Commit
+git add content/lessons/elasticity.mdx
+git commit -m "🐛 fix: correct price elasticity of demand formula"
+
+# 6. Push
+git push -u origin bugfix/correct-elasticity-formula
+```
+
+---
+
+## Accessibility Requirements
+
+### All Interactive Components Must Have:
+
+1. **Keyboard Navigation**
+```tsx
+// Good - keyboard accessible
+<button onClick={handleClick} onKeyPress={handleKeyPress}>
+  Calculate
+</button>
+```
+
+2. **ARIA Labels**
+```tsx
+// Good - screen reader friendly
+<svg aria-label="Supply and demand graph">
+  <line aria-label="Supply curve" />
+  <line aria-label="Demand curve" />
+</svg>
+```
+
+3. **Alt Text for Images**
+```markdown
+![Graph showing consumer surplus as triangle above price](graph.png)
+```
+
+4. **Color Contrast**
+- Text: Minimum 4.5:1 ratio
+- Interactive elements: Minimum 3:1 ratio
+- Test with WebAIM Contrast Checker
+
+---
+
+## Content Commit Best Practices
+
+### DO ✅
+
+- **Cite sources** - Reference textbooks, papers for definitions
+- **Test math examples** - Calculate manually to verify
+- **Use consistent notation** - P for price, Q for quantity, etc.
+- **Add context** - Explain WHY a concept matters
+- **Progressive difficulty** - Start simple, build complexity
+- **Include visuals** - Graphs, diagrams for complex concepts
+
+### DON'T ❌
+
+- **Plagiarize** - Always attribute sources
+- **Oversimplify to point of inaccuracy** - Balance simplicity with correctness
+- **Use jargon without explanation** - Define technical terms
+- **Skip proofreading** - Typos undermine credibility
+- **Commit untested interactive components** - Always test manually
+
+---
+
+## Pre-Commit Checklist (Educational)
+
+Before every commit:
+
+- [ ] **Content reviewed** - Checked for accuracy
+- [ ] **Math validated** - Formulas correct
+- [ ] **Examples tested** - Numerical calculations verified
+- [ ] **LaTeX renders** - No compilation errors
+- [ ] **Interactive components work** - Tested manually
+- [ ] **Accessibility checked** - Keyboard nav, ARIA labels, alt text
+- [ ] **Mobile responsive** - Tested on small screens
+- [ ] **Linter passes** - `npm run lint`
+- [ ] **Build succeeds** - `npm run build`
+
+---
+
+## Pull Request Process
+
+### PR Description Template (Educational)
+
+```markdown
+## Summary
+Brief description of content/feature
+
+## Content Changes
+- Added lesson on X topic
+- Updated interactive component Y
+- Fixed error in Z explanation
+
+## Mathematical Content
+- [ ] All formulas verified against sources
+- [ ] LaTeX compiles without errors
+- [ ] Numerical examples calculated manually
+
+## Accessibility
+- [ ] Keyboard navigation tested
+- [ ] ARIA labels added
+- [ ] Alt text for all images
+- [ ] Color contrast meets WCAG AA
+
+## Testing
+- [ ] Interactive components tested manually
+- [ ] Mobile responsive (tested on 375px width)
+- [ ] Works in Safari, Chrome, Firefox
+
+## Screenshots/Demo
+[Add screenshots or GIF of interactive feature]
+
+## Related Issues
+Closes #123
+```
+
+---
+
+## Content Structure Guidelines
+
+### Recommended Lesson Structure
+
+```markdown
+# Lesson Title
+
+## Learning Objectives
+- Objective 1
+- Objective 2
+
+## Introduction
+[Motivating example or question]
+
+## Core Concept
+[Main explanation with math]
+
+$$
+\text{Formula}
+$$
+
+## Interactive Example
+<InteractiveComponent />
+
+## Practice Problems
+1. Problem 1
+2. Problem 2
+
+## Summary
+[Key takeaways]
+
+## Further Reading
+- Source 1
+- Source 2
+```
+
+---
+
+## Math Rendering Best Practices
+
+### Inline Math
+```markdown
+The price elasticity of demand is $E_d = \frac{\% \Delta Q}{\% \Delta P}$.
+```
+
+### Display Math
+```markdown
+$$
+\max_{x, y} U(x, y) \quad \text{subject to} \quad p_x x + p_y y = I
+$$
+```
+
+### Common Notation
+- **Variables:** Italicized (e.g., $P$, $Q$, $\pi$)
+- **Functions:** Roman (e.g., $\max$, $\log$, $\exp$)
+- **Subscripts:** Descriptive (e.g., $Q_d$ for quantity demanded)
+
+---
+
+## Interactive Component Testing
+
+### Manual Test Checklist
+
+For every interactive component:
+
+- [ ] **Mouse interaction** - Click, drag, hover
+- [ ] **Touch interaction** - Works on mobile/tablet
+- [ ] **Keyboard interaction** - Tab, Enter, Arrow keys
+- [ ] **Reset functionality** - Returns to initial state
+- [ ] **Edge cases** - Min/max values, boundary conditions
+- [ ] **Performance** - No lag with rapid interactions
+- [ ] **Visual feedback** - Clear indication of active state
+
+---
+
+## Deployment Workflow
+
+### Deploying to Production
+
+```bash
+# 1. Merge to main
+git checkout main
+git merge develop
+
+# 2. Tag release
+git tag -a v1.2.0 -m "Add game theory module"
+git push origin main --tags
+
+# 3. Deploy (Vercel/Netlify auto-deploys from main)
+# Verify at production URL
+
+# 4. Announce update
+# Update changelog, notify users
+```
+
+---
+
+## .gitignore Essentials
+
+```bash
+# Dependencies
+node_modules/
+
+# Build artifacts
+.next/
+out/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Logs
+*.log
+
+# Testing
+coverage/
+
+# Environment
+.env
+.env.local
+```
+
+---
+
+## Emergency Commands
+
+### Revert Content Change
+
+```bash
+# Restore previous version of lesson
+git checkout <commit-hash> content/lessons/elasticity.mdx
+git commit -m "🐛 fix: revert incorrect elasticity formula"
+```
+
+### Hotfix for Live Site
+
+```bash
+# If critical error in production
+git checkout main
+git checkout -b hotfix/fix-broken-graph
+# ... fix issue ...
+git commit -m "🐛 fix: repair broken interactive graph"
+git push origin hotfix/fix-broken-graph
+# Create PR to main (fast-track review)
+```
+
+---
+
+## Resources
+
+- **KaTeX Documentation:** https://katex.org/docs/supported.html
+- **MDX:** https://mdxjs.com
+- **WCAG Accessibility:** https://www.w3.org/WAI/WCAG21/quickref/
+- **Framer Motion:** https://www.framer.com/motion/
+
+---
+
+**Note:** This workflow header is auto-generated from `~/.claude/templates/GIT_WORKFLOW_EDUCATIONAL.md`.
+To update across all projects, run: `~/.claude/scripts/sync-git-workflow.sh`
+
+---
+
+<!-- END AUTO-GENERATED GIT WORKFLOW HEADER -->
 # CLAUDE.md - Interactive Learning Games
 
 **Proyecto:** Interactive Learning Games
