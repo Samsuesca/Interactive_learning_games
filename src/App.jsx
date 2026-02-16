@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import ExploraColombia from "./games/explora-colombia";
+import CapitalesSudamerica from "./games/capitales-sudamerica";
 
 const games = [
   {
@@ -9,6 +10,14 @@ const games = [
     icon: "🇨🇴",
     gradient: "linear-gradient(135deg, #F9A825, #f12711)",
     component: ExploraColombia,
+  },
+  {
+    path: "/capitales-sudamerica",
+    title: "Capitales de Sudamérica",
+    desc: "Aprende las capitales de los 12 países sudamericanos con mapa, tarjetas y quiz.",
+    icon: "🌎",
+    gradient: "linear-gradient(135deg, #11998e, #38ef7d)",
+    component: CapitalesSudamerica,
   },
 ];
 
