@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import ExploraColombia from "./games/explora-colombia";
 import CapitalesSudamerica from "./games/capitales-sudamerica";
 import BanderasMundo from "./games/banderas-mundo";
+import QueAnimalSoy from "./games/que-animal-soy";
 
 const games = [
   {
@@ -27,6 +28,14 @@ const games = [
     icon: "🌍",
     gradient: "linear-gradient(135deg, #0052D4, #6FB1FC)",
     component: BanderasMundo,
+  },
+  {
+    path: "/que-animal-soy",
+    title: "¿Qué Animal Soy?",
+    desc: "Adivina el animal con 5 pistas progresivas. ¡Menos pistas, más puntos!",
+    icon: "🐾",
+    gradient: "linear-gradient(135deg, #f5af19, #f12711)",
+    component: QueAnimalSoy,
   },
 ];
 
