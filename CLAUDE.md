@@ -307,6 +307,24 @@ Antes de hacer commit, verifica:
 
 ### 10. WORKFLOW DE COMMITS
 
+⚠️ **IMPORTANTE - NO USAR CO-AUTORÍA DE CLAUDE**
+
+**NUNCA incluyas "Co-Authored-By: Claude" en los commits.** Los commits deben ser solo del autor humano del proyecto (Angel Samuel Suesca Ríos). Claude es una herramienta de asistencia, no un co-autor.
+
+❌ **INCORRECTO:**
+```bash
+git commit -m "feat: add game
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+```
+
+✅ **CORRECTO:**
+```bash
+git commit -m "✨ feat: add game"
+```
+
+**Workflow de commits estándar:**
+
 ```bash
 # 1. Crear estructura
 git add src/games/nombre-del-juego/
