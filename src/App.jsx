@@ -5,6 +5,7 @@ import BanderasMundo from "./games/banderas-mundo";
 import QueAnimalSoy from "./games/que-animal-soy";
 import FigurasGeometricas from "./games/figuras-geometricas";
 import MonumentosFamosos from "./games/monumentos-famosos";
+import PalabrasRevueltas from "./games/palabras-revueltas";
 
 const games = [
   {
@@ -54,6 +55,14 @@ const games = [
     icon: "🏛️",
     gradient: "linear-gradient(135deg, #FF8F00, #F4511E)",
     component: MonumentosFamosos,
+  },
+  {
+    path: "/palabras-revueltas",
+    title: "Palabras Revueltas",
+    desc: "Ordena las letras y forma la palabra correcta. Animales, frutas, países y más.",
+    icon: "🔤",
+    gradient: "linear-gradient(135deg, #667eea, #764ba2)",
+    component: PalabrasRevueltas,
   },
 ];
 
