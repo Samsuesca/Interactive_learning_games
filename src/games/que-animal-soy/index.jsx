@@ -616,7 +616,7 @@ function QuizMode({ onBack }) {
       <Confetti active={conf} />
       <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:420, alignItems:"center" }}>
         <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        <div style={{ display:"flex", gap:12, fontSize:14, fontWeight:600 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
+        <div aria-live="polite" style={{ display:"flex", gap:12, fontSize:14, fontWeight:600 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
       </div>
       <PBar v={qi + 1} mx={T} />
       <div style={{ fontSize:13, color:"#999" }}>Pregunta {qi + 1} de {T}</div>
@@ -759,8 +759,8 @@ function ChallengeMode({ onBack }) {
 
       {/* Timer and score */}
       <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:420, alignItems:"center" }}>
-        <div style={{ fontSize:28, fontWeight:800, color:tc, animation: tm <= 10 ? "qasPulse 0.5s infinite" : "none" }}>⏱ {tm}s</div>
-        <div style={{ display:"flex", gap:12, fontSize:15, fontWeight:700 }}><span>💰 {sc}</span><span>🔥 {str}</span></div>
+        <div aria-live="assertive" aria-atomic="true" style={{ fontSize:28, fontWeight:800, color:tc, animation: tm <= 10 ? "qasPulse 0.5s infinite" : "none" }}>⏱ {tm}s</div>
+        <div aria-live="polite" style={{ display:"flex", gap:12, fontSize:15, fontWeight:700 }}><span>💰 {sc}</span><span>🔥 {str}</span></div>
       </div>
       <div style={{ width:"100%", maxWidth:420, height:8, background:"#e0e0e0", borderRadius:4, overflow:"hidden" }}>
         <div style={{ width:`${(tm/60)*100}%`, height:"100%", background:tc, transition:"width 1s linear", borderRadius:4 }} />
@@ -887,6 +887,7 @@ export default function QueAnimalSoy() {
             ))}
           </div>
           <div style={{ fontSize:12, color:"#bbb", textAlign:"center", marginTop:8 }}>20 animales · 5 pistas cada uno · Datos curiosos · ¡A jugar! 🎮</div>
+          <a href="/" style={{ fontSize:13, color:"#aaa", textDecoration:"none", textAlign:"center" }}>← Volver al menú principal</a>
         </div>
       </div>
     </div>
@@ -895,6 +896,6 @@ export default function QueAnimalSoy() {
 
 const gameCtn = {
   fontFamily:"'Segoe UI',system-ui,-apple-system,sans-serif",
-  maxWidth:480, margin:"0 auto", padding:"24px 12px", minHeight:"100vh",
+  maxWidth:640, margin:"0 auto", padding:"24px 12px", minHeight:"100vh",
   background:"linear-gradient(180deg,#fff8f0 0%,#fff5ee 50%,#faf0ff 100%)"
 };

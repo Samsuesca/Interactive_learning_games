@@ -173,7 +173,7 @@ function ColombiaMapSVG({ sel, found, hovered, setHovered, onClickDept, mode }) 
   const { features } = useColombiaMap();
 
   return (
-    <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width:"100%", height:"auto", maxHeight:"60vh" }}>
+    <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} role="img" aria-label="Mapa interactivo de Colombia con departamentos" style={{ width:"100%", height:"auto", maxHeight:"60vh" }}>
       <defs>
         <filter id="mapShadow">
           <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.15" />
@@ -220,8 +220,12 @@ function ColombiaMapSVG({ sel, found, hovered, setHovered, onClickDept, mode }) 
               stroke={stroke}
               strokeWidth={strokeW}
               strokeLinejoin="round"
+              role="button"
+              aria-label={`Departamento de ${name}`}
+              tabIndex={0}
               style={{ cursor:"pointer", transition:"fill 0.2s, stroke-width 0.2s" }}
               onClick={() => onClickDept(name)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClickDept(name); } }}
               onMouseEnter={() => setHovered(name)}
               onMouseLeave={() => setHovered(null)}
             />
@@ -485,7 +489,7 @@ function QuizMode({ onBack }) {
       <Confetti active={conf} />
       <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:420, alignItems:"center" }}>
         <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        <div style={{ display:"flex", gap:12, fontSize:14, fontWeight:600 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
+        <div aria-live="polite" style={{ display:"flex", gap:12, fontSize:14, fontWeight:600 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
       </div>
       <PBar v={qi + 1} mx={T} />
       <div style={{ fontSize:13, color:"#999" }}>Pregunta {qi + 1} de {T}</div>
@@ -585,8 +589,8 @@ function ChallengeMode({ onBack }) {
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12, padding:"0 8px" }}>
       <Confetti active={conf} />
       <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:420, alignItems:"center" }}>
-        <div style={{ fontSize:28, fontWeight:800, color:tc, animation: tm <= 10 ? "pulse 0.5s infinite" : "none" }}>⏱ {tm}s</div>
-        <div style={{ display:"flex", gap:12, fontSize:15, fontWeight:700 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
+        <div aria-live="assertive" aria-atomic="true" style={{ fontSize:28, fontWeight:800, color:tc, animation: tm <= 10 ? "pulse 0.5s infinite" : "none" }}>⏱ {tm}s</div>
+        <div aria-live="polite" style={{ display:"flex", gap:12, fontSize:15, fontWeight:700 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
       </div>
       <div style={{ width:"100%", maxWidth:420, height:8, background:"#e0e0e0", borderRadius:4, overflow:"hidden" }}>
         <div style={{ width:`${(tm/60)*100}%`, height:"100%", background:tc, transition:"width 1s linear", borderRadius:4 }} />
@@ -669,6 +673,7 @@ export default function ExploraColombia() {
             ))}
           </div>
           <div style={{ fontSize:12, color:"#bbb", textAlign:"center", marginTop:8 }}>32 departamentos · 32 capitales · 6 regiones · ¡A jugar! 🎮</div>
+          <a href="/" style={{ fontSize:13, color:"#aaa", textDecoration:"none", textAlign:"center" }}>← Volver al menú principal</a>
         </div>
       </div>
     </div>
@@ -677,6 +682,6 @@ export default function ExploraColombia() {
 
 const gameCtn = {
   fontFamily:"'Segoe UI',system-ui,-apple-system,sans-serif",
-  maxWidth:480, margin:"0 auto", padding:"24px 12px", minHeight:"100vh",
+  maxWidth:640, margin:"0 auto", padding:"24px 12px", minHeight:"100vh",
   background:"linear-gradient(180deg,#fef9f0 0%,#fff5f5 50%,#f0f4ff 100%)"
 };

@@ -1,11 +1,14 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import ExploraColombia from "./games/explora-colombia";
-import CapitalesSudamerica from "./games/capitales-sudamerica";
-import BanderasMundo from "./games/banderas-mundo";
-import QueAnimalSoy from "./games/que-animal-soy";
-import FigurasGeometricas from "./games/figuras-geometricas";
-import MonumentosFamosos from "./games/monumentos-famosos";
-import PalabrasRevueltas from "./games/palabras-revueltas";
+import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+
+// Issue #4: Lazy-load all game modules for code splitting
+const ExploraColombia = lazy(() => import("./games/explora-colombia"));
+const CapitalesSudamerica = lazy(() => import("./games/capitales-sudamerica"));
+const BanderasMundo = lazy(() => import("./games/banderas-mundo"));
+const QueAnimalSoy = lazy(() => import("./games/que-animal-soy"));
+const FigurasGeometricas = lazy(() => import("./games/figuras-geometricas"));
+const MonumentosFamosos = lazy(() => import("./games/monumentos-famosos"));
+const PalabrasRevueltas = lazy(() => import("./games/palabras-revueltas"));
 
 const games = [
   {
@@ -66,6 +69,37 @@ const games = [
   },
 ];
 
+// Issue #2: Update document title based on current route
+function TitleUpdater() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const game = games.find((g) => g.path === location.pathname);
+    if (game) {
+      document.title = `${game.title} - Juegos para Aprender`;
+    } else {
+      document.title = "Juegos para Aprender";
+    }
+  }, [location.pathname]);
+
+  return null;
+}
+
+// Issue #4: Loading fallback for lazy-loaded games
+function LoadingFallback() {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "center", minHeight: "100vh", gap: 16,
+      fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+    }}>
+      <div style={{ fontSize: 48, animation: "spin 1s linear infinite" }}>🎮</div>
+      <div style={{ fontSize: 16, color: "#777" }}>Cargando juego...</div>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+}
+
 function Home() {
   return (
     <div style={homeCtn}>
@@ -116,19 +150,22 @@ function Home() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        {games.map((g) => (
-          <Route key={g.path} path={g.path} element={<g.component />} />
-        ))}
-      </Routes>
+      <TitleUpdater />
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          {games.map((g) => (
+            <Route key={g.path} path={g.path} element={<g.component />} />
+          ))}
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
 
 const homeCtn = {
   fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-  maxWidth: 480,
+  maxWidth: 640,
   margin: "0 auto",
   padding: "40px 16px",
   minHeight: "100vh",

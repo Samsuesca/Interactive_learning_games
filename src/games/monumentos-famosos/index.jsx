@@ -226,7 +226,7 @@ function WorldMapSVG({ onClickMap, guessPoint, actualPoint, showResult, highligh
   const actualPixel = actualPoint ? projection([actualPoint[0], actualPoint[1]]) : null;
 
   return (
-    <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width:"100%", height:"auto", cursor: onClickMap ? "crosshair" : "default", borderRadius:12 }} onClick={handleClick}>
+    <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} role="img" aria-label="Mapa mundial interactivo para ubicar monumentos" style={{ width:"100%", height:"auto", cursor: onClickMap ? "crosshair" : "default", borderRadius:12 }} onClick={handleClick}>
       <defs>
         <filter id="mfShadow"><feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.12" /></filter>
         <radialGradient id="mfOcean" cx="50%" cy="50%">
@@ -247,6 +247,7 @@ function WorldMapSVG({ onClickMap, guessPoint, actualPoint, showResult, highligh
         const isHighlight = highlightCountry === name;
         return (
           <path key={name} d={path}
+            aria-label={name}
             fill={isHighlight ? "#fff176" : baseColor}
             stroke="#fff" strokeWidth={isHighlight ? 1.5 : 0.5} strokeLinejoin="round"
             opacity={isHighlight ? 1 : 0.75}
@@ -385,7 +386,7 @@ function LocateMode({ onBack }) {
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:480, alignItems:"center" }}>
         <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        <div style={{ display:"flex", gap:12, fontSize:14, fontWeight:600 }}>
+        <div aria-live="polite" style={{ display:"flex", gap:12, fontSize:14, fontWeight:600 }}>
           <span>📍 {idx + 1}/{monuments.length}</span>
           <span>🏆 {totalScore.toLocaleString()}</span>
         </div>
@@ -554,7 +555,7 @@ function QuizMode({ onBack }) {
       <Confetti active={conf} />
       <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:420, alignItems:"center" }}>
         <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        <div style={{ display:"flex", gap:12, fontSize:14, fontWeight:600 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
+        <div aria-live="polite" style={{ display:"flex", gap:12, fontSize:14, fontWeight:600 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
       </div>
       <PBar v={qi + 1} mx={T} />
       <div style={{ fontSize:13, color:"#999" }}>Pregunta {qi + 1} de {T}</div>
@@ -653,8 +654,8 @@ function ChallengeMode({ onBack }) {
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12, padding:"0 8px" }}>
       <Confetti active={conf} />
       <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:420, alignItems:"center" }}>
-        <div style={{ fontSize:28, fontWeight:800, color:tc, animation: tm <= 10 ? "mfPulse 0.5s infinite" : "none" }}>⏱ {tm}s</div>
-        <div style={{ display:"flex", gap:12, fontSize:15, fontWeight:700 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
+        <div aria-live="assertive" aria-atomic="true" style={{ fontSize:28, fontWeight:800, color:tc, animation: tm <= 10 ? "mfPulse 0.5s infinite" : "none" }}>⏱ {tm}s</div>
+        <div aria-live="polite" style={{ display:"flex", gap:12, fontSize:15, fontWeight:700 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
       </div>
       <div style={{ width:"100%", maxWidth:420, height:8, background:"#e0e0e0", borderRadius:4, overflow:"hidden" }}>
         <div style={{ width:`${(tm/60)*100}%`, height:"100%", background:tc, transition:"width 1s linear", borderRadius:4 }} />
@@ -743,6 +744,7 @@ export default function MonumentosFamosos() {
             ))}
           </div>
           <div style={{ fontSize:12, color:"#bbb", textAlign:"center", marginTop:8 }}>20 monumentos · 6 continentes · Mapa mundial · ¡A jugar! 🎮</div>
+          <a href="/" style={{ fontSize:13, color:"#aaa", textDecoration:"none", textAlign:"center" }}>← Volver al menú principal</a>
         </div>
       </div>
     </div>
@@ -751,6 +753,6 @@ export default function MonumentosFamosos() {
 
 const gameCtn = {
   fontFamily:"'Segoe UI',system-ui,-apple-system,sans-serif",
-  maxWidth:480, margin:"0 auto", padding:"24px 12px", minHeight:"100vh",
+  maxWidth:640, margin:"0 auto", padding:"24px 12px", minHeight:"100vh",
   background:"linear-gradient(180deg,#fff8e1 0%,#ffe0b2 50%,#ffccbc 100%)"
 };

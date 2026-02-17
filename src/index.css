@@ -14,3 +14,21 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Issue #8: Visible focus indicators for keyboard navigation */
+:focus-visible {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
+}
+
+svg path:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 1px;
+}

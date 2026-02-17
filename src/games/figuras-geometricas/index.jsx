@@ -1039,7 +1039,7 @@ function QuizMode({ onBack }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <button onClick={onBack} style={pill("rgba(255,255,255,0.85)", "#333")}>◀ Menú</button>
-        <span style={{ fontSize: 13, color: "#888", fontWeight: 600 }}>
+        <span aria-live="polite" style={{ fontSize: 13, color: "#888", fontWeight: 600 }}>
           {qi + 1}/{TOTAL_Q} · ✅ {sc} {str > 1 && `· 🔥${str}`}
         </span>
       </div>
@@ -1188,13 +1188,13 @@ function ChallengeMode({ onBack }) {
     <div>
       <Confetti active={conf} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={{
+        <div aria-live="assertive" aria-atomic="true" style={{
           fontSize: 28, fontWeight: 800, color: tc,
           animation: tm <= 10 ? "gPulse 0.5s infinite" : "none",
         }}>
           ⏱️ {tm}s
         </div>
-        <span style={{ fontSize: 13, color: "#888", fontWeight: 600 }}>
+        <span aria-live="polite" style={{ fontSize: 13, color: "#888", fontWeight: 600 }}>
           ✅ {sc} {str > 1 && `· 🔥${str}`}
         </span>
       </div>
@@ -1368,13 +1368,14 @@ export default function FigurasGeometricas() {
       <div style={{ fontSize: 12, color: "#bbb", textAlign: "center", marginTop: 20 }}>
         {SHAPES_2D.length} figuras 2D · {SHAPES_3D.length} volúmenes 3D · ¡A aprender! 📐
       </div>
+      <a href="/" style={{ fontSize: 13, color: "#aaa", textDecoration: "none", textAlign: "center", alignSelf: "center" }}>← Volver al menú principal</a>
     </div>
   );
 }
 
 const gameCtn = {
   fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-  maxWidth: 480,
+  maxWidth: 640,
   margin: "0 auto",
   padding: "24px 12px",
   minHeight: "100vh",
