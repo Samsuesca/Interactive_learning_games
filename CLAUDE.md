@@ -495,14 +495,19 @@ To update across all projects, run: `~/.claude/scripts/sync-git-workflow.sh`
 
 ## RESUMEN DEL PROYECTO
 
-Plataforma de juegos educativos interactivos con enfoque en aprendizaje geográfico. Cada juego es un módulo independiente con múltiples modos de juego (exploración, aprendizaje, quiz, desafíos).
+Plataforma de juegos educativos interactivos para niños y jóvenes. Cada juego es un módulo independiente con múltiples modos de juego (exploración, aprendizaje, quiz, desafíos). Cubre geografía, ciencias naturales, matemáticas y lenguaje.
 
-**Juegos implementados:**
-- ✅ **Explora Colombia** - Departamentos y capitales de Colombia con mapa interactivo
+**Juegos implementados (7):**
+- ✅ **Explora Colombia** - 32 departamentos y capitales con mapa interactivo
 - ✅ **Capitales de Sudamérica** - 12 países con mapas, datos curiosos y desafíos
+- ✅ **Banderas del Mundo** - 50 países con banderas, capitales, idiomas y monedas
+- ✅ **¿Qué Animal Soy?** - 20 animales con 5 pistas progresivas
+- ✅ **Figuras Geométricas** - 16 figuras 2D/3D con fórmulas y propiedades
+- ✅ **Monumentos Famosos** - 20 monumentos con mapa mundial interactivo
+- ✅ **Palabras Revueltas** - 72 palabras en 6 categorías para ordenar letras
 
 **Objetivos:**
-- Aprendizaje gamificado de geografía
+- Aprendizaje gamificado multi-temático
 - Interfaz atractiva y responsive
 - Múltiples modos de juego para diferentes estilos de aprendizaje
 - Código modular y reutilizable
@@ -519,11 +524,27 @@ interactive-learning-games/
 │   │   │   ├── index.jsx              # Componente principal del juego
 │   │   │   ├── colombia-geo.js        # GeoJSON de Colombia
 │   │   │   └── README.md              # Documentación del juego
-│   │   └── capitales-sudamerica/
-│   │       ├── index.jsx              # Componente principal del juego
-│   │       ├── southamerica-geo.js    # GeoJSON de Sudamérica
-│   │       └── README.md              # Documentación del juego
-│   ├── App.jsx                        # Router principal
+│   │   ├── capitales-sudamerica/
+│   │   │   ├── index.jsx              # Componente principal del juego
+│   │   │   ├── southamerica-geo.js    # GeoJSON de Sudamérica
+│   │   │   └── README.md              # Documentación del juego
+│   │   ├── banderas-mundo/
+│   │   │   ├── index.jsx              # 50 países, banderas y datos
+│   │   │   └── README.md
+│   │   ├── que-animal-soy/
+│   │   │   ├── index.jsx              # 20 animales con pistas progresivas
+│   │   │   └── README.md
+│   │   ├── figuras-geometricas/
+│   │   │   ├── index.jsx              # 16 figuras 2D/3D con SVG
+│   │   │   └── README.md
+│   │   ├── monumentos-famosos/
+│   │   │   ├── index.jsx              # 20 monumentos con mapa
+│   │   │   ├── world-geo.js           # GeoJSON mundial simplificado
+│   │   │   └── README.md
+│   │   └── palabras-revueltas/
+│   │       ├── index.jsx              # 72 palabras en 6 categorías
+│   │       └── README.md
+│   ├── App.jsx                        # Router principal + lazy loading
 │   ├── main.jsx                       # Entry point
 │   └── index.css                      # Estilos globales
 ├── public/
@@ -1180,10 +1201,10 @@ npm run preview
    - Fauna característica
    - Mapa de corrientes
 
-5. **🗺️ Banderas del Mundo**
-   - 195 banderas
-   - Significado de colores
-   - Quiz de reconocimiento
+5. **🧬 Sistema Solar**
+   - Planetas, distancias, composición
+   - Datos de lunas y anillos
+   - Comparaciones de tamaño
 
 ---
 
