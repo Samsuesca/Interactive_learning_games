@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import GameErrorBoundary from "./components/GameErrorBoundary";
 
 const ExploraColombia = lazy(() => import("./games/explora-colombia"));
 const CapitalesSudamerica = lazy(() => import("./games/capitales-sudamerica"));
@@ -148,7 +149,11 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           {games.map((g) => (
-            <Route key={g.path} path={g.path} element={<g.component />} />
+            <Route key={g.path} path={g.path} element={
+              <GameErrorBoundary icon={g.icon}>
+                <g.component />
+              </GameErrorBoundary>
+            } />
           ))}
         </Routes>
       </Suspense>
