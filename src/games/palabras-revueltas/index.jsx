@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import useGameProgress from "../../hooks/useGameProgress";
 
 /* ───────────────── DATOS DEL JUEGO ───────────────── */
 
@@ -535,11 +536,12 @@ function WordPuzzle({ wordData, onSolved, onFailed, timeLimit, showHint, showCat
 
 /* ───────────────── MODO EXPLORAR (Categorías) ───────────────── */
 
-function ExploreMode({ onBack }) {
+function ExploreMode({ onBack, saveLearned }) {
   const [selectedCat, setSelectedCat] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [learned, setLearned] = useState(new Set());
+  useEffect(() => { if (learned.size > 0) saveLearned?.(learned.size); }, [learned.size]);
 
   if (!selectedCat) {
     return (
@@ -908,13 +910,14 @@ function LearnMode({ onBack }) {
 
 const QUIZ_TOTAL = 12;
 
-function QuizMode({ onBack }) {
+function QuizMode({ onBack, saveQuiz }) {
   const [words, setWords] = useState(() => shuffle(ALL_WORDS).slice(0, QUIZ_TOTAL));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [done, setDone] = useState(false);
   const [confetti, setConfetti] = useState(0);
+  useEffect(() => { if (done) saveQuiz?.(score, QUIZ_TOTAL, streak); }, [done]);
 
   const reset = () => {
     setWords(shuffle(ALL_WORDS).slice(0, QUIZ_TOTAL));
@@ -1002,7 +1005,7 @@ function QuizMode({ onBack }) {
 
 /* ───────────────── MODO DESAFÍO (Contrarreloj) ───────────────── */
 
-function ChallengeMode({ onBack }) {
+function ChallengeMode({ onBack, saveChallenge }) {
   const [status, setStatus] = useState("ready"); // ready | playing | done
   const [words, setWords] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -1011,6 +1014,7 @@ function ChallengeMode({ onBack }) {
   const [confetti, setConfetti] = useState(0);
   const [wordKey, setWordKey] = useState(0);
   const globalTimerRef = useRef(null);
+  useEffect(() => { if (status === "done") saveChallenge?.(score); }, [status]);
 
   const start = () => {
     setWords(shuffle(ALL_WORDS));
@@ -1150,6 +1154,7 @@ function ChallengeMode({ onBack }) {
 export default function PalabrasRevueltas() {
   const [screen, setScreen] = useState("menu");
   const [floats, setFloats] = useState([]);
+  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("palabras-revueltas");
 
   useEffect(() => {
     if (screen !== "menu") return;
@@ -1180,7 +1185,7 @@ export default function PalabrasRevueltas() {
   if (Screen) {
     return (
       <div style={gameCtn}>
-        <Screen onBack={() => setScreen("menu")} />
+        <Screen onBack={() => setScreen("menu")} saveQuiz={saveQuiz} saveChallenge={saveChallenge} saveLearned={saveLearned} />
       </div>
     );
   }

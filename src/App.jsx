@@ -1,6 +1,7 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import GameErrorBoundary from "./components/GameErrorBoundary";
+import { getAllProgress } from "./hooks/useGameProgress";
 
 const ExploraColombia = lazy(() => import("./games/explora-colombia"));
 const CapitalesSudamerica = lazy(() => import("./games/capitales-sudamerica"));
@@ -95,7 +96,31 @@ function LoadingSpinner() {
   );
 }
 
+function ProgressBadge({ progress }) {
+  if (!progress || !progress.quizTotal) return null;
+  return (
+    <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+      <span style={{ background: "rgba(255,255,255,0.25)", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
+        🧠 {progress.quizBest}/{progress.quizTotal}
+      </span>
+      {progress.challengeBest > 0 && (
+        <span style={{ background: "rgba(255,255,255,0.25)", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
+          ⚡ {progress.challengeBest}
+        </span>
+      )}
+      {progress.bestStreak > 0 && (
+        <span style={{ background: "rgba(255,255,255,0.25)", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
+          🔥 {progress.bestStreak}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function Home() {
+  const [progress, setProgress] = useState({});
+  useEffect(() => { setProgress(getAllProgress()); }, []);
+
   return (
     <div style={homeCtn}>
       <div style={{ textAlign: "center", marginBottom: 8 }}>
@@ -107,32 +132,36 @@ function Home() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%", maxWidth: 420 }}>
-        {games.map((g) => (
-          <Link to={g.path} key={g.path} style={{ textDecoration: "none" }}>
-            <div
-              style={{
-                background: g.gradient,
-                borderRadius: 20,
-                padding: "24px 22px",
-                color: "white",
-                cursor: "pointer",
-                transition: "transform 0.2s",
-                boxShadow: "0 6px 25px rgba(0,0,0,0.15)",
-                display: "flex",
-                alignItems: "center",
-                gap: 18,
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-            >
-              <span style={{ fontSize: 44 }}>{g.icon}</span>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 800 }}>{g.title}</div>
-                <div style={{ fontSize: 13, opacity: 0.9, marginTop: 4, lineHeight: 1.4 }}>{g.desc}</div>
+        {games.map((g) => {
+          const p = progress[g.path.slice(1)];
+          return (
+            <Link to={g.path} key={g.path} style={{ textDecoration: "none" }}>
+              <div
+                style={{
+                  background: g.gradient,
+                  borderRadius: 20,
+                  padding: "24px 22px",
+                  color: "white",
+                  cursor: "pointer",
+                  transition: "transform 0.2s",
+                  boxShadow: "0 6px 25px rgba(0,0,0,0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 18,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+              >
+                <span style={{ fontSize: 44 }}>{g.icon}</span>
+                <div>
+                  <div style={{ fontSize: 20, fontWeight: 800 }}>{g.title}</div>
+                  <div style={{ fontSize: 13, opacity: 0.9, marginTop: 4, lineHeight: 1.4 }}>{g.desc}</div>
+                  <ProgressBadge progress={p} />
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })}
       </div>
 
       <div style={{ fontSize: 12, color: "#bbb", textAlign: "center", marginTop: 16 }}>
