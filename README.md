@@ -1,6 +1,6 @@
 # 🎮 Interactive Learning Games
 
-Plataforma de juegos educativos interactivos enfocados en aprendizaje geográfico. Cada juego ofrece múltiples modos de aprendizaje: exploración con mapas interactivos, flashcards, quizzes y desafíos contra reloj.
+Plataforma de juegos educativos interactivos para niños y jóvenes. Cada juego ofrece múltiples modos de aprendizaje: exploración interactiva, flashcards, quizzes y desafíos contra reloj. Cubre geografía, ciencias naturales, matemáticas y lenguaje.
 
 ![React](https://img.shields.io/badge/React-19.2.0-blue?logo=react)
 ![Vite](https://img.shields.io/badge/Vite-7.3.1-purple?logo=vite)
@@ -29,6 +29,61 @@ Domina las capitales de los 12 países sudamericanos con datos culturales y curi
 - Modo desafío de 60 segundos
 
 [📖 Ver documentación completa](./src/games/capitales-sudamerica/README.md)
+
+### 🌍 Banderas del Mundo
+Aprende las banderas, capitales y datos curiosos de 50 países de todo el mundo.
+
+**Características:**
+- Galería visual con filtro por continente
+- 50 países · Banderas · Capitales · Idiomas · Monedas
+- Datos curiosos por país
+- 4 modos de juego completos
+
+[📖 Ver documentación completa](./src/games/banderas-mundo/README.md)
+
+### 🐾 ¿Qué Animal Soy?
+Adivina el animal con 5 pistas progresivas. ¡Menos pistas usas, más puntos ganas!
+
+**Características:**
+- 20 animales con 5 pistas cada uno
+- Sistema de puntuación progresivo (50→10 puntos)
+- Hábitats, alimentación y curiosidades
+- Modo desafío de 60 segundos
+
+[📖 Ver documentación completa](./src/games/que-animal-soy/README.md)
+
+### 📐 Figuras Geométricas
+Aprende figuras 2D, polígonos y volúmenes 3D con fórmulas, propiedades y quiz interactivos.
+
+**Características:**
+- 16 figuras geométricas (10 2D + 6 3D)
+- Renderizado SVG con perspectiva 3D
+- Fórmulas de área, perímetro y volumen
+- Galería con filtro 2D/3D
+
+[📖 Ver documentación completa](./src/games/figuras-geometricas/README.md)
+
+### 🏛️ Monumentos Famosos
+Ubica los monumentos más icónicos del mundo en un mapa interactivo.
+
+**Características:**
+- 20 monumentos famosos con mapa mundial
+- Modo "Localizar" con puntuación por distancia (Haversine)
+- Año de construcción, país y datos históricos
+- GeoJSON simplificado del mundo
+
+[📖 Ver documentación completa](./src/games/monumentos-famosos/README.md)
+
+### 🔤 Palabras Revueltas
+Ordena las letras desordenadas para formar la palabra correcta.
+
+**Características:**
+- 72 palabras en 6 categorías (animales, frutas, países, profesiones, deportes, colores)
+- Mecánica de arrastrar letras para ordenar
+- Temporizador por palabra (30 segundos)
+- Modo exploración por categoría
+
+[📖 Ver documentación completa](./src/games/palabras-revueltas/README.md)
 
 ## 🚀 Instalación
 
@@ -69,19 +124,18 @@ npm run lint         # Ejecuta ESLint
 
 ## 🎯 Modos de Juego
 
-Todos los juegos incluyen 4 modos complementarios de aprendizaje:
+Cada juego ofrece modos complementarios adaptados a su temática:
 
-### 🗺️ Modo Mapa Interactivo
-- **Exploración libre**: Descubre información tocando el mapa
-- **Encuéntralo**: Desafío de localizar lugares específicos
-- Feedback visual inmediato
-- Contador de progreso
+### 🗺️ Modo Exploración
+- **Mapas interactivos** (juegos geográficos): Exploración libre y modo "Encuéntralo"
+- **Galerías visuales** (banderas, figuras): Navegación con filtros por categoría
+- **Pistas progresivas** (animales): 5 pistas con puntuación decreciente
+- Feedback visual inmediato en todos los modos
 
 ### 📚 Modo Aprender
 - Flashcards con animación flip 3D
-- Navegación secuencial
+- Navegación secuencial con barra de progreso
 - Sistema de marcado "Aprendido"
-- Barra de progreso visual
 - Información completa y datos curiosos
 
 ### 🧠 Modo Quiz
@@ -96,7 +150,6 @@ Todos los juegos incluyen 4 modos complementarios de aprendizaje:
 - Preguntas ilimitadas
 - Timer visual con cambio de color
 - Estadísticas de velocidad
-- Animaciones de urgencia
 
 ## 🛠️ Stack Tecnológico
 
@@ -112,26 +165,41 @@ Todos los juegos incluyen 4 modos complementarios de aprendizaje:
 ```
 interactive-learning-games/
 ├── src/
-│   ├── games/                    # Juegos individuales
-│   │   ├── explora-colombia/
-│   │   │   ├── index.jsx        # Componente principal
-│   │   │   ├── colombia-geo.js  # GeoJSON
-│   │   │   └── README.md        # Documentación
-│   │   └── capitales-sudamerica/
+│   ├── games/                        # Juegos individuales
+│   │   ├── explora-colombia/         # 🇨🇴 Departamentos de Colombia
+│   │   │   ├── index.jsx
+│   │   │   ├── colombia-geo.js       # GeoJSON departamentos
+│   │   │   └── README.md
+│   │   ├── capitales-sudamerica/     # 🌎 Capitales sudamericanas
+│   │   │   ├── index.jsx
+│   │   │   ├── southamerica-geo.js   # GeoJSON países
+│   │   │   └── README.md
+│   │   ├── banderas-mundo/           # 🌍 Banderas de 50 países
+│   │   │   ├── index.jsx
+│   │   │   └── README.md
+│   │   ├── que-animal-soy/           # 🐾 Adivina el animal
+│   │   │   ├── index.jsx
+│   │   │   └── README.md
+│   │   ├── figuras-geometricas/      # 📐 Figuras 2D y 3D
+│   │   │   ├── index.jsx
+│   │   │   └── README.md
+│   │   ├── monumentos-famosos/       # 🏛️ Monumentos del mundo
+│   │   │   ├── index.jsx
+│   │   │   ├── world-geo.js          # GeoJSON mundial
+│   │   │   └── README.md
+│   │   └── palabras-revueltas/       # 🔤 Ordena las letras
 │   │       ├── index.jsx
-│   │       ├── southamerica-geo.js
 │   │       └── README.md
-│   ├── App.jsx                   # Router principal
-│   ├── App.css                   # Estilos de app
-│   ├── main.jsx                  # Entry point
-│   └── index.css                 # Estilos globales
+│   ├── App.jsx                       # Router principal + lazy loading
+│   ├── main.jsx                      # Entry point
+│   └── index.css                     # Estilos globales
 ├── public/
-│   └── _redirects               # Netlify SPA routing
-├── CLAUDE.md                     # Guía para agentes IA
-├── README.md                     # Este archivo
+│   └── _redirects                    # Netlify SPA routing
+├── CLAUDE.md                         # Guía para agentes IA
+├── README.md                         # Este archivo
 ├── package.json
 ├── vite.config.js
-└── netlify.toml                  # Config de deployment
+└── netlify.toml                      # Config de deployment
 ```
 
 ## 🎨 Características de Diseño
@@ -218,10 +286,12 @@ Ver [CLAUDE.md](./CLAUDE.md) para guía completa.
 
 ## 📊 Roadmap
 
-### En Desarrollo
+### Ideas para Nuevos Juegos
 - 🌍 **Capitales de Europa** (50 países)
 - 🏞️ **Ríos del Mundo** (principales ríos)
 - ⛰️ **Montañas Famosas** (picos por continente)
+- 🌊 **Océanos y Mares** (profundidad, fauna)
+- 🧬 **Sistema Solar** (planetas, datos)
 
 ### Futuras Características
 - 🔊 Audio de pronunciación
@@ -230,7 +300,6 @@ Ver [CLAUDE.md](./CLAUDE.md) para guía completa.
 - 📈 Estadísticas detalladas
 - 🌐 Internacionalización (i18n)
 - 🎮 Modo multijugador
-- 🎨 Temas personalizables
 
 ## 🤝 Contribuir
 
