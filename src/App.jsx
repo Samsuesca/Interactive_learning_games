@@ -1,11 +1,13 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import ExploraColombia from "./games/explora-colombia";
-import CapitalesSudamerica from "./games/capitales-sudamerica";
-import BanderasMundo from "./games/banderas-mundo";
-import QueAnimalSoy from "./games/que-animal-soy";
-import FigurasGeometricas from "./games/figuras-geometricas";
-import MonumentosFamosos from "./games/monumentos-famosos";
-import PalabrasRevueltas from "./games/palabras-revueltas";
+
+const ExploraColombia = lazy(() => import("./games/explora-colombia"));
+const CapitalesSudamerica = lazy(() => import("./games/capitales-sudamerica"));
+const BanderasMundo = lazy(() => import("./games/banderas-mundo"));
+const QueAnimalSoy = lazy(() => import("./games/que-animal-soy"));
+const FigurasGeometricas = lazy(() => import("./games/figuras-geometricas"));
+const MonumentosFamosos = lazy(() => import("./games/monumentos-famosos"));
+const PalabrasRevueltas = lazy(() => import("./games/palabras-revueltas"));
 
 const games = [
   {
@@ -66,6 +68,32 @@ const games = [
   },
 ];
 
+function LoadingSpinner() {
+  return (
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: "100vh",
+      fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+      background: "linear-gradient(180deg, #fef9f0 0%, #fff5f5 50%, #f0f4ff 100%)",
+      gap: 16,
+    }}>
+      <div style={{
+        width: 48,
+        height: 48,
+        border: "4px solid #e0e0e0",
+        borderTopColor: "#764ba2",
+        borderRadius: "50%",
+        animation: "spin 0.8s linear infinite",
+      }} />
+      <p style={{ color: "#888", fontSize: 15, margin: 0 }}>Cargando juego...</p>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  );
+}
+
 function Home() {
   return (
     <div style={homeCtn}>
@@ -116,12 +144,14 @@ function Home() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        {games.map((g) => (
-          <Route key={g.path} path={g.path} element={<g.component />} />
-        ))}
-      </Routes>
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          {games.map((g) => (
+            <Route key={g.path} path={g.path} element={<g.component />} />
+          ))}
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
