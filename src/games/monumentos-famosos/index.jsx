@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { geoNaturalEarth1, geoPath, geoGraticule } from "d3-geo";
+import useGameProgress from "../../hooks/useGameProgress";
 import worldGeo from "./world-geo.js";
 
 // =================== MONUMENTS DATA ===================
@@ -438,10 +439,11 @@ function LocateMode({ onBack }) {
 }
 
 /* =================== LEARN MODE =================== */
-function LearnMode({ onBack }) {
+function LearnMode({ onBack, saveLearned }) {
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [learned, setLearned] = useState(new Set());
+  useEffect(() => { if (learned.size > 0) saveLearned?.(learned.size); }, [learned.size]);
   const m = MONUMENTS[idx];
 
   return (
@@ -498,7 +500,7 @@ function LearnMode({ onBack }) {
 }
 
 /* =================== QUIZ MODE =================== */
-function QuizMode({ onBack }) {
+function QuizMode({ onBack, saveQuiz }) {
   const [qs, setQs] = useState([]);
   const [qi, setQi] = useState(0);
   const [sel, setSel] = useState(null);
@@ -508,6 +510,7 @@ function QuizMode({ onBack }) {
   const [conf, setConf] = useState(0);
   const [done, setDone] = useState(false);
   const T = 15;
+  useEffect(() => { if (done) saveQuiz?.(sc, T, bStr); }, [done]);
 
   useEffect(() => { gen(); }, []);
 
@@ -572,7 +575,7 @@ function QuizMode({ onBack }) {
 }
 
 /* =================== CHALLENGE MODE =================== */
-function ChallengeMode({ onBack }) {
+function ChallengeMode({ onBack, saveChallenge }) {
   const [st, setSt] = useState("ready");
   const [qs, setQs] = useState([]);
   const [qi, setQi] = useState(0);
@@ -582,6 +585,7 @@ function ChallengeMode({ onBack }) {
   const [conf, setConf] = useState(0);
   const [str, setStr] = useState(0);
   const ref = useRef(null);
+  useEffect(() => { if (st === "done") saveChallenge?.(sc); }, [st]);
 
   const start = () => {
     setQs(makeQuestions(96));
@@ -677,6 +681,7 @@ function ChallengeMode({ onBack }) {
 export default function MonumentosFamosos() {
   const [screen, setScreen] = useState("menu");
   const [floats, setFloats] = useState([]);
+  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("monumentos-famosos");
 
   useEffect(() => {
     if (screen !== "menu") return;
@@ -692,7 +697,7 @@ export default function MonumentosFamosos() {
   if (Screen) {
     return (
       <div style={gameCtn}>
-        <Screen onBack={() => setScreen("menu")} />
+        <Screen onBack={() => setScreen("menu")} saveQuiz={saveQuiz} saveChallenge={saveChallenge} saveLearned={saveLearned} />
       </div>
     );
   }

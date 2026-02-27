@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import useGameProgress from "../../hooks/useGameProgress";
 
 /* =================== DATOS DEL JUEGO =================== */
 const ANIMALS = [
@@ -472,10 +473,11 @@ function ClueMode({ onBack }) {
 }
 
 /* =================== MODO APRENDER =================== */
-function LearnMode({ onBack }) {
+function LearnMode({ onBack, saveLearned }) {
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [learned, setLearned] = useState(new Set());
+  useEffect(() => { if (learned.size > 0) saveLearned?.(learned.size); }, [learned.size]);
   const a = ANIMALS[idx];
 
   return (
@@ -544,7 +546,7 @@ function LearnMode({ onBack }) {
 }
 
 /* =================== MODO QUIZ =================== */
-function QuizMode({ onBack }) {
+function QuizMode({ onBack, saveQuiz }) {
   const T = 15;
   const [qs, setQs] = useState([]);
   const [qi, setQi] = useState(0);
@@ -554,6 +556,7 @@ function QuizMode({ onBack }) {
   const [bStr, setBStr] = useState(0);
   const [conf, setConf] = useState(0);
   const [done, setDone] = useState(false);
+  useEffect(() => { if (done) saveQuiz?.(sc, T, bStr); }, [done]);
 
   useEffect(() => { gen(); }, []);
 
@@ -650,7 +653,7 @@ function QuizMode({ onBack }) {
 }
 
 /* =================== MODO DESAFÍO =================== */
-function ChallengeMode({ onBack }) {
+function ChallengeMode({ onBack, saveChallenge }) {
   const [st, setSt] = useState("ready");
   const [rounds, setRounds] = useState([]);
   const [ri, setRi] = useState(0);
@@ -661,6 +664,7 @@ function ChallengeMode({ onBack }) {
   const [conf, setConf] = useState(0);
   const [str, setStr] = useState(0);
   const ref = useRef(null);
+  useEffect(() => { if (st === "done") saveChallenge?.(sc); }, [st]);
 
   const start = () => {
     const picked = [];
@@ -827,6 +831,7 @@ function ChallengeMode({ onBack }) {
 export default function QueAnimalSoy() {
   const [screen, setScreen] = useState("menu");
   const [floats, setFloats] = useState([]);
+  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("que-animal-soy");
 
   useEffect(() => {
     if (screen !== "menu") return;
@@ -842,7 +847,7 @@ export default function QueAnimalSoy() {
   if (Screen) {
     return (
       <div style={gameCtn}>
-        <Screen onBack={() => setScreen("menu")} />
+        <Screen onBack={() => setScreen("menu")} saveQuiz={saveQuiz} saveChallenge={saveChallenge} saveLearned={saveLearned} />
       </div>
     );
   }

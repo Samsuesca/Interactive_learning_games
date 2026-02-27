@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import useGameProgress from "../../hooks/useGameProgress";
 
 /* ───────── DATOS DEL JUEGO ───────── */
 
@@ -737,10 +738,11 @@ function ExploreMode({ onBack }) {
 
 /* ───────── MODO APRENDER (FLASHCARDS) ───────── */
 
-function LearnMode({ onBack }) {
+function LearnMode({ onBack, saveLearned }) {
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [learned, setLearned] = useState(new Set());
+  useEffect(() => { if (learned.size > 0) saveLearned?.(learned.size); }, [learned.size]);
 
   const shape = SHAPES[idx];
 
@@ -978,7 +980,7 @@ function makeQuestions(count) {
 
 const TOTAL_Q = 15;
 
-function QuizMode({ onBack }) {
+function QuizMode({ onBack, saveQuiz }) {
   const [qs] = useState(() => makeQuestions(TOTAL_Q));
   const [qi, setQi] = useState(0);
   const [sel, setSel] = useState(null);
@@ -987,6 +989,7 @@ function QuizMode({ onBack }) {
   const [bStr, setBStr] = useState(0);
   const [conf, setConf] = useState(0);
   const [done, setDone] = useState(false);
+  useEffect(() => { if (done) saveQuiz?.(sc, TOTAL_Q, bStr); }, [done]);
 
   const pick = (o) => {
     if (sel !== null) return;
@@ -1073,7 +1076,7 @@ function QuizMode({ onBack }) {
 
 /* ───────── MODO DESAFÍO ───────── */
 
-function ChallengeMode({ onBack }) {
+function ChallengeMode({ onBack, saveChallenge }) {
   const [qs] = useState(() => makeQuestions(96));
   const [qi, setQi] = useState(0);
   const [sel, setSel] = useState(null);
@@ -1083,6 +1086,7 @@ function ChallengeMode({ onBack }) {
   const [st, setSt] = useState("ready");
   const [conf, setConf] = useState(0);
   const ref = useRef(null);
+  useEffect(() => { if (st === "done") saveChallenge?.(sc); }, [st]);
 
   useEffect(() => {
     if (st !== "playing") return;
@@ -1234,6 +1238,7 @@ function ChallengeMode({ onBack }) {
 export default function FigurasGeometricas() {
   const [screen, setScreen] = useState("menu");
   const [floats, setFloats] = useState([]);
+  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("figuras-geometricas");
 
   useEffect(() => {
     if (screen !== "menu") return;
@@ -1264,7 +1269,7 @@ export default function FigurasGeometricas() {
   if (Screen) {
     return (
       <div style={gameCtn}>
-        <Screen onBack={() => setScreen("menu")} />
+        <Screen onBack={() => setScreen("menu")} saveQuiz={saveQuiz} saveChallenge={saveChallenge} saveLearned={saveLearned} />
       </div>
     );
   }
