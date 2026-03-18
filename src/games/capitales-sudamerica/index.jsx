@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { geoMercator, geoPath } from "d3-geo";
 import useGameProgress from "../../hooks/useGameProgress";
+import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
+import { Confetti } from "../../components/game";
+import { shuffle, pill } from "../../components/game/utils";
 import southAmericaGeo from "./southamerica-geo.js";
 
+/* =================== DATA =================== */
 const COUNTRIES = [
   { name:"Argentina", cap:"Buenos Aires", flag:"🇦🇷", currency:"Peso argentino", lang:"Español", pop:"46M", fun:"Cuna del tango y el asado" },
   { name:"Bolivia", cap:"Sucre", flag:"🇧🇴", currency:"Boliviano", lang:"Español", pop:"12M", fun:"Tiene el Salar de Uyuni, el más grande del mundo" },
@@ -18,117 +22,25 @@ const COUNTRIES = [
   { name:"Venezuela", cap:"Caracas", flag:"🇻🇪", currency:"Bolívar", lang:"Español", pop:"29M", fun:"Tiene el Salto Ángel, la cascada más alta del mundo" },
 ];
 
-const EMOJIS = ["🎉","⭐","🌟","💫","🌎","🏆","👏","💪","🦜","☕","🌺","🎊"];
-
-function shuffle(a) {
-  let b = [...a];
-  for (let i = b.length - 1; i > 0; i--) {
-    let j = Math.floor(Math.random() * (i + 1));
-    [b[i], b[j]] = [b[j], b[i]];
-  }
-  return b;
-}
-
-const pill = (bg, c) => ({ background:bg, color:c, border:"none", borderRadius:30, padding:"10px 20px", fontSize:14, fontWeight:700, cursor:"pointer", boxShadow:"0 2px 8px rgba(0,0,0,0.1)" });
-const circ = (bg) => ({ background:bg, color:"#fff", border:"none", borderRadius:"50%", width:44, height:44, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 3px 10px rgba(0,0,0,0.15)" });
-
-function Confetti({ active }) {
-  const [p, setP] = useState([]);
-  useEffect(() => {
-    if (!active) { setP([]); return; }
-    setP(Array.from({ length: 25 }, (_, i) => ({
-      id: i, x: Math.random() * 100, dl: Math.random() * 0.5,
-      c: ["#FFD700","#FF6B6B","#4ECDC4","#45B7D1","#F9A825","#AB47BC"][i % 6],
-      s: Math.random() * 8 + 4
-    })));
-    const t = setTimeout(() => setP([]), 1500);
-    return () => clearTimeout(t);
-  }, [active]);
-  if (!p.length) return null;
-  return (
-    <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:999 }}>
-      {p.map(v => (
-        <div key={v.id} style={{
-          position:"absolute", left:`${v.x}%`, top:-10, width:v.s, height:v.s,
-          borderRadius:"50%", background:v.c, animation:`cFall 1.5s ${v.dl}s ease-in forwards`
-        }} />
-      ))}
-      <style>{`@keyframes cFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}`}</style>
-    </div>
-  );
-}
-
-function Stars({ s, t }) {
-  const n = t > 0 ? (s / t >= 0.9 ? 3 : s / t >= 0.6 ? 2 : s / t > 0 ? 1 : 0) : 0;
-  return (
-    <div style={{ display:"flex", gap:4, justifyContent:"center", fontSize:32 }}>
-      {[0,1,2].map(i => (
-        <span key={i} style={{ opacity: i < n ? 1 : 0.25 }}>{i < n ? "⭐" : "☆"}</span>
-      ))}
-    </div>
-  );
-}
-
-function PBar({ v, mx }) {
-  return (
-    <div style={{ width:"100%", height:10, background:"#e0e0e0", borderRadius:5, overflow:"hidden" }}>
-      <div style={{ width:`${mx > 0 ? (v/mx)*100 : 0}%`, height:"100%", background:"linear-gradient(90deg,#11998e,#38ef7d)", borderRadius:5, transition:"width 0.5s" }} />
-    </div>
-  );
-}
-
-function makeQuestions(count) {
-  return shuffle(COUNTRIES).slice(0, count).map(item => {
-    const askCap = Math.random() > 0.5;
-    const cor = askCap ? item.cap : item.name;
-    let opts = [cor];
-    const pool = COUNTRIES.filter(c => c.name !== item.name);
-    while (opts.length < 4) {
-      const r = pool[Math.floor(Math.random() * pool.length)];
-      const v = askCap ? r.cap : r.name;
-      if (!opts.includes(v)) opts.push(v);
-    }
-    return { item, askCap, cor, opts: shuffle(opts) };
-  });
-}
-
-function OptionButton({ text, sel, cor, onClick }) {
-  const ok = text === cor;
-  const isSel = sel === text;
-  let bg = "white", bd = "#ddd", cl = "#333";
-  if (sel !== null) {
-    if (ok) { bg = "#c8e6c9"; bd = "#66BB6A"; cl = "#2e7d32"; }
-    else if (isSel) { bg = "#ffcdd2"; bd = "#ef5350"; cl = "#c62828"; }
-  }
-  return (
-    <button onClick={onClick} style={{
-      background:bg, border:`2px solid ${bd}`, borderRadius:16, padding:"14px 10px",
-      fontSize:15, fontWeight:600, color:cl, cursor: sel !== null ? "default" : "pointer",
-      transition:"all 0.3s", transform: isSel ? "scale(1.04)" : "scale(1)",
-      boxShadow: isSel ? "0 4px 15px rgba(0,0,0,0.15)" : "0 2px 8px rgba(0,0,0,0.06)"
-    }}>
-      {sel !== null && ok && "✅ "}{sel !== null && isSel && !ok && "❌ "}{text}
-    </button>
-  );
-}
+const QUESTION_TYPES = [
+  {
+    prompt: (item) => `¿Cuál es la capital de ${item.flag} ${item.name}?`,
+    answer: (item) => item.cap,
+  },
+  {
+    prompt: (item) => `¿De qué país es capital 🏛️ ${item.cap}?`,
+    answer: (item) => item.name,
+  },
+];
 
 /* =================== MAP COMPONENT =================== */
 const MAP_W = 480;
 const MAP_H = 580;
 
 const COUNTRY_COLORS = {
-  Argentina: "#74b9ff",
-  Bolivia: "#fdcb6e",
-  Brasil: "#55efc4",
-  Chile: "#e17055",
-  Colombia: "#ffeaa7",
-  Ecuador: "#fab1a0",
-  Guyana: "#81ecec",
-  Paraguay: "#dfe6e9",
-  Perú: "#fd79a8",
-  Surinam: "#a29bfe",
-  Uruguay: "#00cec9",
-  Venezuela: "#6c5ce7",
+  Argentina: "#74b9ff", Bolivia: "#fdcb6e", Brasil: "#55efc4", Chile: "#e17055",
+  Colombia: "#ffeaa7", Ecuador: "#fab1a0", Guyana: "#81ecec", Paraguay: "#dfe6e9",
+  Perú: "#fd79a8", Surinam: "#a29bfe", Uruguay: "#00cec9", Venezuela: "#6c5ce7",
 };
 
 function useSouthAmericaMap() {
@@ -180,9 +92,7 @@ function SouthAmericaMapSVG({ sel, found, hovered, setHovered, onClickCountry, m
 
         return (
           <path key={name} d={path} fill={fill} stroke={stroke} strokeWidth={strokeW} strokeLinejoin="round"
-            role="button"
-            aria-label={`País: ${name}`}
-            tabIndex={0}
+            role="button" aria-label={`País: ${name}`} tabIndex={0}
             style={{ cursor:"pointer", transition:"fill 0.2s" }}
             onClick={() => onClickCountry(name)}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClickCountry(name); } }}
@@ -192,7 +102,6 @@ function SouthAmericaMapSVG({ sel, found, hovered, setHovered, onClickCountry, m
         );
       })}
 
-      {/* Selected label */}
       {features.map(({ name, centroid, info }) => {
         if (!info || sel !== name) return null;
         const [cx, cy] = centroid;
@@ -211,7 +120,6 @@ function SouthAmericaMapSVG({ sel, found, hovered, setHovered, onClickCountry, m
         );
       })}
 
-      {/* Hover tooltip */}
       {hovered && hovered !== sel && features.map(({ name, centroid, info }) => {
         if (!info || name !== hovered) return null;
         const [cx, cy] = centroid;
@@ -227,7 +135,7 @@ function SouthAmericaMapSVG({ sel, found, hovered, setHovered, onClickCountry, m
   );
 }
 
-/* =================== MAP MODE =================== */
+/* =================== MAP MODE (game-specific) =================== */
 function MapMode({ onBack }) {
   const [sel, setSel] = useState(null);
   const [found, setFound] = useState(new Set());
@@ -260,9 +168,7 @@ function MapMode({ onBack }) {
       setFound(s => { const n = new Set(s); n.add(name); return n; });
     } else if (mode === "findIt" && target) {
       if (c.name === target.name) {
-        setFScore(s => s + 1);
-        setMsg("✅ ¡Correcto!");
-        setConf(p => p + 1);
+        setFScore(s => s + 1); setMsg("✅ ¡Correcto!"); setConf(p => p + 1);
         setFound(s => { const n = new Set(s); n.add(name); return n; });
         setSel(name);
         setTimeout(() => {
@@ -308,304 +214,83 @@ function MapMode({ onBack }) {
   );
 }
 
-/* =================== LEARN MODE =================== */
-function LearnMode({ onBack, saveLearned }) {
-  const [idx, setIdx] = useState(0);
-  const [flipped, setFlipped] = useState(false);
-  const [learned, setLearned] = useState(new Set());
-  useEffect(() => { if (learned.size > 0) saveLearned?.(learned.size); }, [learned.size]);
-  const c = COUNTRIES[idx];
-
+/* =================== WIRED LEARN MODE =================== */
+function SALearnMode(props) {
   return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16, padding:"0 8px" }}>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", maxWidth:420 }}>
-        <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        <span style={{ fontSize:14, fontWeight:600, color:"#666" }}>📚 {learned.size}/{COUNTRIES.length}</span>
-      </div>
-      <PBar v={learned.size} mx={COUNTRIES.length} />
-      <div onClick={() => setFlipped(!flipped)} style={{ width:"100%", maxWidth:380, minHeight:260, perspective:800, cursor:"pointer" }}>
-        <div style={{ width:"100%", minHeight:260, position:"relative", transformStyle:"preserve-3d", transition:"transform 0.5s", transform: flipped ? "rotateY(180deg)" : "rotateY(0)" }}>
-          {/* Front - Country */}
-          <div style={{ position:"absolute", inset:0, backfaceVisibility:"hidden", background:"linear-gradient(135deg,#11998e,#38ef7d)", borderRadius:24, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, color:"white", boxShadow:"0 10px 40px rgba(17,153,142,0.4)" }}>
-            <div style={{ fontSize:48, marginBottom:4 }}>{c.flag}</div>
-            <div style={{ fontSize:28, fontWeight:800, textAlign:"center" }}>{c.name}</div>
-            <div style={{ fontSize:12, marginTop:12, background:"rgba(255,255,255,0.2)", padding:"4px 14px", borderRadius:20 }}>🗣️ {c.lang} · 💰 {c.currency}</div>
-            <div style={{ fontSize:13, opacity:0.7, marginTop:12 }}>👆 Toca para ver la capital</div>
-          </div>
-          {/* Back - Capital + Fun fact */}
-          <div style={{ position:"absolute", inset:0, backfaceVisibility:"hidden", background:"linear-gradient(135deg,#6c5ce7,#a29bfe)", borderRadius:24, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, color:"white", transform:"rotateY(180deg)", boxShadow:"0 10px 40px rgba(108,92,231,0.4)" }}>
-            <div style={{ fontSize:14, opacity:0.8 }}>🏛️ Capital de {c.name}</div>
-            <div style={{ fontSize:28, fontWeight:800, textAlign:"center", marginTop:4 }}>{c.cap}</div>
-            <div style={{ fontSize:12, marginTop:12, background:"rgba(255,255,255,0.2)", padding:"6px 14px", borderRadius:12, textAlign:"center", lineHeight:1.4 }}>💡 {c.fun}</div>
-            <div style={{ fontSize:12, marginTop:8, opacity:0.7 }}>👥 Población: {c.pop}</div>
-            <div style={{ fontSize:13, opacity:0.7, marginTop:8 }}>👆 Toca para voltear</div>
-          </div>
-        </div>
-      </div>
-      <div style={{ display:"flex", gap:12, alignItems:"center", justifyContent:"center" }}>
-        <button onClick={() => { setFlipped(false); setTimeout(() => setIdx(i => (i - 1 + COUNTRIES.length) % COUNTRIES.length), 150); }} style={circ("#11998e")}>◀</button>
-        <button onClick={() => setLearned(s => { const n = new Set(s); n.has(idx) ? n.delete(idx) : n.add(idx); return n; })} style={{ ...pill(learned.has(idx) ? "#66BB6A" : "#e0e0e0", learned.has(idx) ? "#fff" : "#333"), minWidth:140 }}>
-          {learned.has(idx) ? "✅ Aprendido" : "Marcar aprendido"}
-        </button>
-        <button onClick={() => { setFlipped(false); setTimeout(() => setIdx(i => (i + 1) % COUNTRIES.length), 150); }} style={circ("#11998e")}>▶</button>
-      </div>
-      <div style={{ fontSize:14, color:"#999" }}>Tarjeta {idx + 1} de {COUNTRIES.length}</div>
-    </div>
+    <LearnMode
+      {...props}
+      data={COUNTRIES}
+      frontGradient="linear-gradient(135deg,#11998e,#38ef7d)"
+      backGradient="linear-gradient(135deg,#6c5ce7,#a29bfe)"
+      progressGradient="linear-gradient(90deg,#11998e,#38ef7d)"
+      renderFront={(c) => (
+        <>
+          <div style={{ fontSize:48, marginBottom:4 }}>{c.flag}</div>
+          <div style={{ fontSize:28, fontWeight:800, textAlign:"center" }}>{c.name}</div>
+          <div style={{ fontSize:12, marginTop:12, background:"rgba(255,255,255,0.2)", padding:"4px 14px", borderRadius:20 }}>🗣️ {c.lang} · 💰 {c.currency}</div>
+        </>
+      )}
+      renderBack={(c) => (
+        <>
+          <div style={{ fontSize:14, opacity:0.8 }}>🏛️ Capital de {c.name}</div>
+          <div style={{ fontSize:28, fontWeight:800, textAlign:"center", marginTop:4 }}>{c.cap}</div>
+          <div style={{ fontSize:12, marginTop:12, background:"rgba(255,255,255,0.2)", padding:"6px 14px", borderRadius:12, textAlign:"center", lineHeight:1.4 }}>💡 {c.fun}</div>
+          <div style={{ fontSize:12, marginTop:8, opacity:0.7 }}>👥 Población: {c.pop}</div>
+        </>
+      )}
+    />
   );
 }
 
-/* =================== QUIZ MODE =================== */
-function QuizMode({ onBack, saveQuiz }) {
-  const [qs, setQs] = useState([]);
-  const [qi, setQi] = useState(0);
-  const [sel, setSel] = useState(null);
-  const [sc, setSc] = useState(0);
-  const [str, setStr] = useState(0);
-  const [bStr, setBStr] = useState(0);
-  const [conf, setConf] = useState(0);
-  const [done, setDone] = useState(false);
-  const T = 12;
-  useEffect(() => { if (done) saveQuiz?.(sc, T, bStr); }, [done]);
-
-  useEffect(() => { gen(); }, []);
-
-  const gen = () => {
-    setQs(makeQuestions(T));
-    setQi(0); setSel(null); setSc(0); setStr(0); setBStr(0); setDone(false);
-  };
-
-  const pick = (o) => {
-    if (sel !== null) return;
-    setSel(o);
-    const ok = o === qs[qi].cor;
-    if (ok) { setSc(s => s + 1); setStr(s => { const n = s + 1; if (n > bStr) setBStr(n); return n; }); setConf(c => c + 1); }
-    else { setStr(0); }
-    setTimeout(() => { if (qi + 1 >= T) setDone(true); else { setQi(i => i + 1); setSel(null); } }, 1200);
-  };
-
-  if (done) {
-    return (
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16, padding:"0 8px" }}>
-        <Confetti active={conf} />
-        <div style={{ fontSize:48 }}>🎉</div>
-        <h2 style={{ fontSize:24, fontWeight:800, color:"#333" }}>¡Quiz terminado!</h2>
-        <Stars s={sc} t={T} />
-        <div style={{ background:"linear-gradient(135deg,#11998e,#38ef7d)", borderRadius:20, padding:24, color:"white", textAlign:"center", maxWidth:300, width:"100%" }}>
-          <div style={{ fontSize:42, fontWeight:800 }}>{sc}/{T}</div>
-          <div style={{ fontSize:15, opacity:0.9, marginTop:8 }}>Correctas</div>
-          <div style={{ fontSize:14, opacity:0.8, marginTop:4 }}>🔥 Mejor racha: {bStr}</div>
-        </div>
-        <div style={{ fontSize:18, textAlign:"center" }}>{sc >= 11 ? "🏆 ¡Geógrafa experta!" : sc >= 8 ? "💪 ¡Muy bien!" : "📚 ¡Sigue practicando!"}</div>
-        <div style={{ display:"flex", gap:12 }}>
-          <button onClick={gen} style={pill("#11998e","#fff")}>🔄 Jugar de nuevo</button>
-          <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!qs.length) return null;
-  const q = qs[qi];
-
+/* =================== WIRED QUIZ MODE =================== */
+function SAQuizMode(props) {
   return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:14, padding:"0 8px" }}>
-      <Confetti active={conf} />
-      <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:420, alignItems:"center" }}>
-        <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        <div aria-live="polite" style={{ display:"flex", gap:12, fontSize:14, fontWeight:600 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
-      </div>
-      <PBar v={qi + 1} mx={T} />
-      <div style={{ fontSize:13, color:"#999" }}>Pregunta {qi + 1} de {T}</div>
-      <div style={{ background:"linear-gradient(135deg,#6c5ce7,#a29bfe)", borderRadius:20, padding:24, color:"white", textAlign:"center", width:"100%", maxWidth:400 }}>
-        <div style={{ fontSize:14, opacity:0.85, marginBottom:6 }}>{q.askCap ? "¿Cuál es la capital de...?" : "¿De qué país es capital...?"}</div>
-        <div style={{ fontSize:24, fontWeight:800 }}>{q.askCap ? `${q.item.flag} ${q.item.name}` : `🏛️ ${q.item.cap}`}</div>
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, width:"100%", maxWidth:400 }}>
-        {q.opts.map((o, i) => (
-          <OptionButton key={i} text={o} sel={sel} cor={q.cor} onClick={() => pick(o)} />
-        ))}
-      </div>
-    </div>
+    <QuizMode
+      {...props}
+      data={COUNTRIES}
+      questionTypes={QUESTION_TYPES}
+      count={12}
+      questionGradient="linear-gradient(135deg,#6c5ce7,#a29bfe)"
+      progressGradient="linear-gradient(90deg,#11998e,#38ef7d)"
+    />
   );
 }
 
-/* =================== CHALLENGE MODE =================== */
-function ChallengeMode({ onBack, saveChallenge }) {
-  const [st, setSt] = useState("ready");
-  const [qs, setQs] = useState([]);
-  const [qi, setQi] = useState(0);
-  const [sc, setSc] = useState(0);
-  const [tm, setTm] = useState(60);
-  const [sel, setSel] = useState(null);
-  const [conf, setConf] = useState(0);
-  const [str, setStr] = useState(0);
-  const ref = useRef(null);
-  useEffect(() => { if (st === "done") saveChallenge?.(sc); }, [st]);
-
-  const start = () => {
-    setQs(makeQuestions(96));
-    setQi(0); setSc(0); setTm(60); setSel(null); setStr(0); setSt("playing");
-  };
-
-  useEffect(() => {
-    if (st !== "playing") return;
-    ref.current = setInterval(() => {
-      setTm(t => {
-        if (t <= 1) { clearInterval(ref.current); setSt("done"); return 0; }
-        return t - 1;
-      });
-    }, 1000);
-    return () => clearInterval(ref.current);
-  }, [st]);
-
-  const pick = (o) => {
-    if (sel !== null || st !== "playing") return;
-    setSel(o);
-    if (o === qs[qi].cor) { setSc(s => s + 1); setStr(s => s + 1); setConf(c => c + 1); }
-    else { setStr(0); }
-    setTimeout(() => {
-      if (qi + 1 >= qs.length) { clearInterval(ref.current); setSt("done"); }
-      else { setQi(i => i + 1); setSel(null); }
-    }, 600);
-  };
-
-  if (st === "ready") {
-    return (
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:20, padding:"0 8px" }}>
-        <button onClick={onBack} style={{ ...pill("#e0e0e0","#333"), alignSelf:"flex-start" }}>← Menú</button>
-        <div style={{ fontSize:64 }}>⚡</div>
-        <h2 style={{ fontSize:24, fontWeight:800, color:"#333", textAlign:"center" }}>Desafío Relámpago</h2>
-        <div style={{ background:"linear-gradient(135deg,#e17055,#d63031)", borderRadius:20, padding:24, color:"white", textAlign:"center", maxWidth:350, width:"100%" }}>
-          <p style={{ fontSize:16, margin:0, lineHeight:1.6 }}>¡Tienes <strong>60 segundos</strong> para responder la mayor cantidad de capitales! 🏁</p>
-        </div>
-        <button onClick={start} style={{ ...pill("#11998e","#fff"), fontSize:20, padding:"14px 40px", animation:"sacPulse 1.5s infinite" }}>🚀 ¡Empezar!</button>
-        <style>{`@keyframes sacPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}`}</style>
-      </div>
-    );
-  }
-
-  if (st === "done") {
-    return (
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16, padding:"0 8px" }}>
-        <Confetti active={conf} />
-        <div style={{ fontSize:48 }}>⚡</div>
-        <h2 style={{ fontSize:24, fontWeight:800, color:"#333" }}>¡Tiempo!</h2>
-        <Stars s={sc} t={Math.max(sc + 3, 10)} />
-        <div style={{ background:"linear-gradient(135deg,#11998e,#38ef7d)", borderRadius:20, padding:24, color:"white", textAlign:"center", maxWidth:300, width:"100%" }}>
-          <div style={{ fontSize:48, fontWeight:800 }}>{sc}</div>
-          <div style={{ fontSize:16 }}>correctas en 60s</div>
-        </div>
-        <div style={{ fontSize:18, textAlign:"center" }}>{sc >= 15 ? "🏆 ¡Increíble!" : sc >= 10 ? "🔥 ¡Muy rápida!" : sc >= 5 ? "💪 ¡Bien!" : "📚 ¡Practica más!"}</div>
-        <div style={{ display:"flex", gap:12 }}>
-          <button onClick={start} style={pill("#11998e","#fff")}>⚡ Otra vez</button>
-          <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!qs.length) return null;
-  const q = qs[qi];
-  const tc = tm <= 10 ? "#ef5350" : tm <= 30 ? "#FFA726" : "#66BB6A";
-
+/* =================== WIRED CHALLENGE MODE =================== */
+function SAChallengeMode(props) {
   return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12, padding:"0 8px" }}>
-      <Confetti active={conf} />
-      <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:420, alignItems:"center" }}>
-        <div aria-live="assertive" aria-atomic="true" style={{ fontSize:28, fontWeight:800, color:tc, animation: tm <= 10 ? "sacPulse 0.5s infinite" : "none" }}>⏱ {tm}s</div>
-        <div aria-live="polite" style={{ display:"flex", gap:12, fontSize:15, fontWeight:700 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
-      </div>
-      <div style={{ width:"100%", maxWidth:420, height:8, background:"#e0e0e0", borderRadius:4, overflow:"hidden" }}>
-        <div style={{ width:`${(tm/60)*100}%`, height:"100%", background:tc, transition:"width 1s linear", borderRadius:4 }} />
-      </div>
-      <div style={{ background:`linear-gradient(135deg,${tm <= 10 ? "#ff5252,#f44336" : "#6c5ce7,#a29bfe"})`, borderRadius:18, padding:20, color:"white", textAlign:"center", width:"100%", maxWidth:400 }}>
-        <div style={{ fontSize:13, opacity:0.85 }}>{q.askCap ? "¿Capital de...?" : "¿País de...?"}</div>
-        <div style={{ fontSize:22, fontWeight:800 }}>{q.askCap ? `${q.item.flag} ${q.item.name}` : q.item.cap}</div>
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, width:"100%", maxWidth:400 }}>
-        {q.opts.map((o, i) => (
-          <OptionButton key={i} text={o} sel={sel} cor={q.cor} onClick={() => pick(o)} />
-        ))}
-      </div>
-      <style>{`@keyframes sacPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}`}</style>
-    </div>
+    <ChallengeMode
+      {...props}
+      data={COUNTRIES}
+      questionTypes={QUESTION_TYPES}
+      questionGradient="linear-gradient(135deg,#6c5ce7,#a29bfe)"
+    />
   );
 }
 
-/* =================== MAIN GAME COMPONENT =================== */
+/* =================== MAIN COMPONENT =================== */
 export default function CapitalesSudamerica() {
-  const [screen, setScreen] = useState("menu");
-  const [floats, setFloats] = useState([]);
   const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("capitales-sudamerica");
 
-  useEffect(() => {
-    if (screen !== "menu") return;
-    const iv = setInterval(() => {
-      setFloats(f => [...f, { id: Date.now(), emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)], x: Math.random() * 90 + 5 }].slice(-8));
-    }, 1800);
-    return () => clearInterval(iv);
-  }, [screen]);
-
-  const screens = { map: MapMode, learn: LearnMode, quiz: QuizMode, challenge: ChallengeMode };
-  const Screen = screens[screen];
-
-  if (Screen) {
-    return (
-      <div style={gameCtn}>
-        <Screen onBack={() => setScreen("menu")} saveQuiz={saveQuiz} saveChallenge={saveChallenge} saveLearned={saveLearned} />
-      </div>
-    );
-  }
-
-  const modes = [
-    { key:"map", icon:"🗺️", title:"Mapa Interactivo", desc:"Explora Sudamérica tocando cada país", gradient:"linear-gradient(135deg,#11998e,#38ef7d)" },
-    { key:"learn", icon:"📚", title:"Aprende", desc:"Tarjetas con países, capitales y datos curiosos", gradient:"linear-gradient(135deg,#6c5ce7,#a29bfe)" },
-    { key:"quiz", icon:"🧠", title:"Quiz", desc:"¿Conoces todas las capitales?", gradient:"linear-gradient(135deg,#fd79a8,#e84393)" },
-    { key:"challenge", icon:"⚡", title:"Desafío Relámpago", desc:"60 segundos. ¿Cuántas aciertas?", gradient:"linear-gradient(135deg,#e17055,#d63031)" },
-  ];
-
   return (
-    <div style={gameCtn}>
-      <div style={{ position:"relative", overflow:"hidden", minHeight:"100%" }}>
-        {floats.map(f => (
-          <div key={f.id} style={{ position:"absolute", left:`${f.x}%`, top:-30, fontSize:24, animation:"saFloat 4s ease-in forwards", pointerEvents:"none", zIndex:0 }}>{f.emoji}</div>
-        ))}
-        <style>{`@keyframes saFloat{0%{transform:translateY(0);opacity:1}100%{transform:translateY(600px);opacity:0}}`}</style>
-        <div style={{ position:"relative", zIndex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:20, padding:"0 8px" }}>
-          <div style={{ textAlign:"center" }}>
-            <div style={{ fontSize:48, marginBottom:4 }}>🌎</div>
-            <h1 style={{ fontSize:28, fontWeight:900, margin:0, background:"linear-gradient(135deg,#11998e,#38ef7d)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
-              Capitales de Sudamérica
-            </h1>
-            <p style={{ fontSize:15, color:"#777", margin:"4px 0 0" }}>¡Aprende las capitales de los 12 países!</p>
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:14, width:"100%", maxWidth:380 }}>
-            {modes.map(m => (
-              <button key={m.key} onClick={() => setScreen(m.key)} style={{
-                background:m.gradient, border:"none", borderRadius:20, padding:"20px 22px",
-                color:"white", textAlign:"left", cursor:"pointer", transition:"transform 0.2s",
-                boxShadow:"0 6px 25px rgba(0,0,0,0.15)", display:"flex", alignItems:"center", gap:16
-              }}
-              onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
-              onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-                <span style={{ fontSize:36 }}>{m.icon}</span>
-                <div>
-                  <div style={{ fontSize:18, fontWeight:800 }}>{m.title}</div>
-                  <div style={{ fontSize:13, opacity:0.9 }}>{m.desc}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-          <div style={{ fontSize:12, color:"#bbb", textAlign:"center", marginTop:8 }}>12 países · 12 capitales · Datos curiosos · ¡A jugar! 🎮</div>
-          <a href="/" style={{ fontSize:13, color:"#aaa", textDecoration:"none", textAlign:"center" }}>← Volver al menú principal</a>
-        </div>
-      </div>
-    </div>
+    <GameShell
+      config={{
+        id: "capitales-sudamerica",
+        title: "Capitales de Sudamérica",
+        icon: "🌎",
+        gradient: "linear-gradient(180deg,#f0fff4 0%,#f0f8ff 50%,#faf0ff 100%)",
+        titleGradient: "linear-gradient(135deg,#11998e,#38ef7d)",
+        subtitle: "¡Aprende las capitales de los 12 países!",
+        footer: "12 países · 12 capitales · Datos curiosos · ¡A jugar! 🎮",
+        emojis: ["🎉","⭐","🌟","💫","🌎","🏆","👏","💪","🦜","☕","🌺","🎊"],
+        modes: [
+          { key:"map", icon:"🗺️", title:"Mapa Interactivo", desc:"Explora Sudamérica tocando cada país", gradient:"linear-gradient(135deg,#11998e,#38ef7d)", component: MapMode },
+          { key:"learn", icon:"📚", title:"Aprende", desc:"Tarjetas con países, capitales y datos curiosos", gradient:"linear-gradient(135deg,#6c5ce7,#a29bfe)", component: SALearnMode },
+          { key:"quiz", icon:"🧠", title:"Quiz", desc:"¿Conoces todas las capitales?", gradient:"linear-gradient(135deg,#fd79a8,#e84393)", component: SAQuizMode },
+          { key:"challenge", icon:"⚡", title:"Desafío Relámpago", desc:"60 segundos. ¿Cuántas aciertas?", gradient:"linear-gradient(135deg,#e17055,#d63031)", component: SAChallengeMode },
+        ],
+      }}
+      progressHooks={{ saveQuiz, saveChallenge, saveLearned }}
+    />
   );
 }
-
-const gameCtn = {
-  fontFamily:"'Segoe UI',system-ui,-apple-system,sans-serif",
-  maxWidth:640, margin:"0 auto", padding:"24px 12px", minHeight:"100vh",
-  background:"linear-gradient(180deg,#f0fff4 0%,#f0f8ff 50%,#faf0ff 100%)"
-};
