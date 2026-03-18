@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import useGameProgress from "../../hooks/useGameProgress";
+import GameShell from "../../engine/GameShell";
+import { Confetti, Stars, ProgressBar } from "../../components/game";
+import { shuffle, pill, circ } from "../../components/game/utils";
 
 /* ───────────────── DATOS DEL JUEGO ───────────────── */
 
@@ -124,22 +127,10 @@ const ALL_WORDS = CATEGORIES.flatMap((cat) =>
   cat.words.map((w) => ({ ...w, category: cat.name, emoji: cat.emoji, color: cat.color }))
 );
 
-const EMOJIS = ["🔤", "✨", "🧩", "💡", "🎯", "🔠", "📝", "🌟"];
-
 /* ───────────────── UTILIDADES ───────────────── */
-
-const shuffle = (arr) => {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-};
 
 const scrambleWord = (word) => {
   let scrambled = shuffle(word.split(""));
-  // Ensure the scrambled version is different from the original
   let attempts = 0;
   while (scrambled.join("") === word && attempts < 20) {
     scrambled = shuffle(word.split(""));
@@ -147,112 +138,6 @@ const scrambleWord = (word) => {
   }
   return scrambled;
 };
-
-const pill = (bg, c) => ({
-  background: bg,
-  color: c,
-  border: "none",
-  borderRadius: 30,
-  padding: "10px 20px",
-  fontSize: 14,
-  fontWeight: 700,
-  cursor: "pointer",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-});
-
-const circ = (bg) => ({
-  background: bg,
-  color: "#fff",
-  border: "none",
-  borderRadius: "50%",
-  width: 44,
-  height: 44,
-  fontSize: 18,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  boxShadow: "0 3px 10px rgba(0,0,0,0.15)",
-});
-
-/* ───────────────── COMPONENTES COMPARTIDOS ───────────────── */
-
-function Confetti({ active }) {
-  const [particles, setParticles] = useState([]);
-  useEffect(() => {
-    if (!active) {
-      setParticles([]);
-      return;
-    }
-    setParticles(
-      Array.from({ length: 25 }, (_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        delay: Math.random() * 0.5,
-        color: ["#FFD700", "#FF6B6B", "#4ECDC4", "#45B7D1", "#F9A825", "#AB47BC"][i % 6],
-        size: Math.random() * 8 + 4,
-      }))
-    );
-    const timeout = setTimeout(() => setParticles([]), 1500);
-    return () => clearTimeout(timeout);
-  }, [active]);
-
-  if (!particles.length) return null;
-  return (
-    <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 999 }}>
-      {particles.map((p) => (
-        <div
-          key={p.id}
-          style={{
-            position: "absolute",
-            left: `${p.x}%`,
-            top: -10,
-            width: p.size,
-            height: p.size,
-            background: p.color,
-            borderRadius: p.size > 8 ? "50%" : "2px",
-            animation: `confetti-fall 1.5s ${p.delay}s ease-in forwards`,
-          }}
-        />
-      ))}
-      <style>{`
-        @keyframes confetti-fall {
-          0% { transform: translateY(0) rotate(0deg); opacity:1; }
-          100% { transform: translateY(100vh) rotate(720deg); opacity:0; }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function Stars({ score, total }) {
-  const stars = total > 0 ? (score / total >= 0.9 ? 3 : score / total >= 0.6 ? 2 : score / total > 0 ? 1 : 0) : 0;
-  return (
-    <div style={{ display: "flex", gap: 4, justifyContent: "center", fontSize: 32 }}>
-      {[0, 1, 2].map((i) => (
-        <span key={i} style={{ opacity: i < stars ? 1 : 0.25 }}>
-          {i < stars ? "⭐" : "☆"}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function ProgressBar({ value, max }) {
-  return (
-    <div style={{ width: "100%", height: 10, background: "#e0e0e0", borderRadius: 5, overflow: "hidden" }}>
-      <div
-        style={{
-          width: `${max > 0 ? (value / max) * 100 : 0}%`,
-          height: "100%",
-          background: "linear-gradient(90deg,#F9A825,#FF6B6B)",
-          borderRadius: 5,
-          transition: "width 0.5s",
-        }}
-      />
-    </div>
-  );
-}
 
 /* ───────────────── LETTER TILE ───────────────── */
 
@@ -771,7 +656,7 @@ function ExploreMode({ onBack, saveLearned }) {
 
 /* ───────────────── MODO APRENDER (Práctica libre) ───────────────── */
 
-function LearnMode({ onBack }) {
+function PracticeMode({ onBack }) {
   const [category, setCategory] = useState(null);
   const [words, setWords] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -1156,203 +1041,27 @@ function ChallengeMode({ onBack, saveChallenge }) {
 /* ───────────────── MENÚ PRINCIPAL ───────────────── */
 
 export default function PalabrasRevueltas() {
-  const [screen, setScreen] = useState("menu");
-  const [floats, setFloats] = useState([]);
   const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("palabras-revueltas");
 
-  useEffect(() => {
-    if (screen !== "menu") return;
-    const iv = setInterval(() => {
-      setFloats((f) =>
-        [
-          ...f,
-          {
-            id: Date.now(),
-            emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
-            x: Math.random() * 90 + 5,
-          },
-        ].slice(-8)
-      );
-    }, 1800);
-    return () => clearInterval(iv);
-  }, [screen]);
-
-  const screens = {
-    explore: ExploreMode,
-    learn: LearnMode,
-    quiz: QuizMode,
-    challenge: ChallengeMode,
-  };
-
-  const Screen = screens[screen];
-
-  if (Screen) {
-    return (
-      <div style={gameCtn}>
-        <Screen onBack={() => setScreen("menu")} saveQuiz={saveQuiz} saveChallenge={saveChallenge} saveLearned={saveLearned} />
-      </div>
-    );
-  }
-
-  const modes = [
-    {
-      key: "explore",
-      icon: "🗂️",
-      title: "Explorar",
-      desc: "Descubre las palabras por categoría con tarjetas",
-      gradient: "linear-gradient(135deg,#11998e,#38ef7d)",
-    },
-    {
-      key: "learn",
-      icon: "📚",
-      title: "Aprender",
-      desc: "Practica ordenando letras con pistas y tiempo",
-      gradient: "linear-gradient(135deg,#6c5ce7,#a29bfe)",
-    },
-    {
-      key: "quiz",
-      icon: "🧠",
-      title: "Quiz",
-      desc: `${QUIZ_TOTAL} palabras aleatorias de todas las categorías`,
-      gradient: "linear-gradient(135deg,#f093fb,#f5576c)",
-    },
-    {
-      key: "challenge",
-      icon: "⚡",
-      title: "Desafío",
-      desc: "60 segundos, sin pistas. ¿Cuántas resuelves?",
-      gradient: "linear-gradient(135deg,#f5af19,#f12711)",
-    },
-  ];
-
   return (
-    <div style={gameCtn}>
-      {/* Floating emojis */}
-      {floats.map((f) => (
-        <div
-          key={f.id}
-          style={{
-            position: "absolute",
-            left: `${f.x}%`,
-            top: -30,
-            fontSize: 22,
-            opacity: 0.15,
-            pointerEvents: "none",
-            animation: "float-up 4s linear forwards",
-          }}
-        >
-          {f.emoji}
-        </div>
-      ))}
-
-      {/* Header */}
-      <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
-        <div style={{ fontSize: 56, marginBottom: 4 }}>🔤</div>
-        <h1
-          style={{
-            fontSize: 28,
-            fontWeight: 900,
-            margin: 0,
-            background: "linear-gradient(135deg, #667eea, #764ba2)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}
-        >
-          Palabras Revueltas
-        </h1>
-        <p style={{ fontSize: 14, color: "#888", margin: "6px 0 0" }}>
-          ¡Ordena las letras y forma la palabra correcta!
-        </p>
-        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10, flexWrap: "wrap" }}>
-          {CATEGORIES.map((cat) => (
-            <span
-              key={cat.name}
-              style={{
-                background: `${cat.color}22`,
-                color: cat.color,
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "4px 10px",
-                borderRadius: 20,
-              }}
-            >
-              {cat.emoji} {cat.name}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Mode buttons */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", position: "relative", zIndex: 1 }}>
-        {modes.map((m) => (
-          <button
-            key={m.key}
-            onClick={() => setScreen(m.key)}
-            style={{
-              background: m.gradient,
-              color: "white",
-              border: "none",
-              borderRadius: 18,
-              padding: "18px 20px",
-              fontSize: 16,
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-              boxShadow: "0 4px 18px rgba(0,0,0,0.12)",
-              transition: "transform 0.2s",
-              textAlign: "left",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.02)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          >
-            <span style={{ fontSize: 30 }}>{m.icon}</span>
-            <div>
-              <div>{m.title}</div>
-              <div style={{ fontSize: 12, opacity: 0.85, fontWeight: 500 }}>{m.desc}</div>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {/* Back to home */}
-      <a
-        href="/"
-        style={{
-          fontSize: 13,
-          color: "#aaa",
-          textDecoration: "none",
-          textAlign: "center",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        ← Volver al menú principal
-      </a>
-
-      <style>{`
-        @keyframes float-up {
-          0% { transform: translateY(0); opacity: 0.15; }
-          100% { transform: translateY(100vh); opacity: 0; }
-        }
-      `}</style>
-    </div>
+    <GameShell
+      config={{
+        id: "palabras-revueltas",
+        title: "Palabras Revueltas",
+        icon: "🔤",
+        gradient: "linear-gradient(180deg,#f0f0ff 0%,#fff5f5 50%,#f5f0ff 100%)",
+        titleGradient: "linear-gradient(135deg, #667eea, #764ba2)",
+        subtitle: "¡Ordena las letras y forma la palabra correcta!",
+        footer: "72 palabras · 6 categorías · 4 modos de juego · ¡A jugar! 🎮",
+        emojis: ["🔤", "✨", "🧩", "💡", "🎯", "🔠", "📝", "🌟"],
+        modes: [
+          { key: "explore", icon: "🗂️", title: "Explorar", desc: "Descubre las palabras por categoría con tarjetas", gradient: "linear-gradient(135deg,#11998e,#38ef7d)", component: ExploreMode },
+          { key: "learn", icon: "📚", title: "Aprender", desc: "Practica ordenando letras con pistas y tiempo", gradient: "linear-gradient(135deg,#6c5ce7,#a29bfe)", component: PracticeMode },
+          { key: "quiz", icon: "🧠", title: "Quiz", desc: `${QUIZ_TOTAL} palabras aleatorias de todas las categorías`, gradient: "linear-gradient(135deg,#f093fb,#f5576c)", component: QuizMode },
+          { key: "challenge", icon: "⚡", title: "Desafío", desc: "60 segundos, sin pistas. ¿Cuántas resuelves?", gradient: "linear-gradient(135deg,#f5af19,#f12711)", component: ChallengeMode },
+        ],
+      }}
+      progressHooks={{ saveQuiz, saveChallenge, saveLearned }}
+    />
   );
 }
-
-/* ───────────────── ESTILOS ───────────────── */
-
-const gameCtn = {
-  fontFamily: "'Segoe UI',system-ui,-apple-system,sans-serif",
-  maxWidth: 640,
-  margin: "0 auto",
-  padding: "24px 12px",
-  minHeight: "100vh",
-  background: "linear-gradient(180deg,#f0f0ff 0%,#fff5f5 50%,#f5f0ff 100%)",
-  position: "relative",
-  overflow: "hidden",
-  display: "flex",
-  flexDirection: "column",
-  gap: 20,
-};

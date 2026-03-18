@@ -1,5 +1,8 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useMemo } from "react";
 import useGameProgress from "../../hooks/useGameProgress";
+import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
+import { Confetti, OptionButton } from "../../components/game";
+import { shuffle, pill } from "../../components/game/utils";
 
 /* =================== GAME DATA =================== */
 const COUNTRIES = [
@@ -68,134 +71,81 @@ const CONTINENTS = {
   oceania: { name:"Oceanía", color:"#a29bfe", emoji:"🏝️" },
 };
 
-const EMOJIS = ["🎉","⭐","🌟","💫","🏳️","🏆","👏","💪","🌎","🌍","🌏","🎊"];
+/* =================== QUESTION TYPES =================== */
+const QUESTION_TYPES = [
+  {
+    prompt: (item) => `flag_to_country::${item.flag}`,
+    answer: (item) => item.name,
+  },
+  {
+    prompt: (item) => `country_to_flag::${item.flag} ${item.name}`,
+    answer: (item) => item.flag,
+  },
+  {
+    prompt: (item) => `country_to_cap::${item.flag} ${item.name}`,
+    answer: (item) => item.cap,
+  },
+];
 
-/* =================== UTILITIES =================== */
-function shuffle(a) {
-  let b = [...a];
-  for (let i = b.length - 1; i > 0; i--) {
-    let j = Math.floor(Math.random() * (i + 1));
-    [b[i], b[j]] = [b[j], b[i]];
+/* Helper to parse question type from prompt string */
+function parseQuestion(prompt) {
+  const [type, display] = prompt.split("::");
+  if (type === "flag_to_country") {
+    return { type: "flag_to_country", text: "¿De qué país es esta bandera?", display, displaySize: 56 };
   }
-  return b;
+  if (type === "country_to_flag") {
+    return { type: "country_to_flag", text: "¿Cuál es la bandera de...?", display, displaySize: 24 };
+  }
+  return { type: "country_to_cap", text: "¿Cuál es la capital de...?", display, displaySize: 24 };
 }
 
-const pill = (bg, c) => ({ background:bg, color:c, border:"none", borderRadius:30, padding:"10px 20px", fontSize:14, fontWeight:700, cursor:"pointer", boxShadow:"0 2px 8px rgba(0,0,0,0.1)" });
-const circ = (bg) => ({ background:bg, color:"#fff", border:"none", borderRadius:"50%", width:44, height:44, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 3px 10px rgba(0,0,0,0.15)" });
-
-/* =================== SHARED COMPONENTS =================== */
-function Confetti({ active }) {
-  const [p, setP] = useState([]);
-  useEffect(() => {
-    if (!active) { setP([]); return; }
-    setP(Array.from({ length: 25 }, (_, i) => ({
-      id: i, x: Math.random() * 100, dl: Math.random() * 0.5,
-      c: ["#FFD700","#FF6B6B","#4ECDC4","#45B7D1","#F9A825","#AB47BC"][i % 6],
-      s: Math.random() * 8 + 4
-    })));
-    const t = setTimeout(() => setP([]), 1500);
-    return () => clearTimeout(t);
-  }, [active]);
-  if (!p.length) return null;
-  return (
-    <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:999 }}>
-      {p.map(v => (
-        <div key={v.id} style={{
-          position:"absolute", left:`${v.x}%`, top:-10, width:v.s, height:v.s,
-          borderRadius:"50%", background:v.c, animation:`cFall 1.5s ${v.dl}s ease-in forwards`
-        }} />
-      ))}
-      <style>{`@keyframes cFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}`}</style>
-    </div>
-  );
-}
-
-function Stars({ s, t }) {
-  const n = t > 0 ? (s / t >= 0.9 ? 3 : s / t >= 0.6 ? 2 : s / t > 0 ? 1 : 0) : 0;
-  return (
-    <div style={{ display:"flex", gap:4, justifyContent:"center", fontSize:32 }}>
-      {[0,1,2].map(i => (
-        <span key={i} style={{ opacity: i < n ? 1 : 0.25 }}>{i < n ? "⭐" : "☆"}</span>
-      ))}
-    </div>
-  );
-}
-
-function PBar({ v, mx }) {
-  return (
-    <div style={{ width:"100%", height:10, background:"#e0e0e0", borderRadius:5, overflow:"hidden" }}>
-      <div style={{ width:`${mx > 0 ? (v/mx)*100 : 0}%`, height:"100%", background:"linear-gradient(90deg,#0052D4,#6FB1FC)", borderRadius:5, transition:"width 0.5s" }} />
-    </div>
-  );
-}
-
-/* =================== QUESTION SYSTEM =================== */
-const Q_FLAG_TO_COUNTRY = 0;
-const Q_COUNTRY_TO_FLAG = 1;
-const Q_COUNTRY_TO_CAP  = 2;
-
-function makeQuestions(count) {
-  const pool = count > COUNTRIES.length
-    ? [...shuffle(COUNTRIES), ...shuffle(COUNTRIES)].slice(0, count)
-    : shuffle(COUNTRIES).slice(0, count);
-
-  return pool.map(item => {
-    const type = [Q_FLAG_TO_COUNTRY, Q_COUNTRY_TO_FLAG, Q_COUNTRY_TO_CAP][Math.floor(Math.random() * 3)];
-    let cor, opts;
-    const others = COUNTRIES.filter(c => c.name !== item.name);
-
-    if (type === Q_FLAG_TO_COUNTRY) {
-      cor = item.name;
-      opts = [cor];
-      while (opts.length < 4) {
-        const r = others[Math.floor(Math.random() * others.length)];
-        if (!opts.includes(r.name)) opts.push(r.name);
-      }
-    } else if (type === Q_COUNTRY_TO_FLAG) {
-      cor = item.flag;
-      opts = [cor];
-      while (opts.length < 4) {
-        const r = others[Math.floor(Math.random() * others.length)];
-        if (!opts.includes(r.flag)) opts.push(r.flag);
-      }
-    } else {
-      cor = item.cap;
-      opts = [cor];
-      while (opts.length < 4) {
-        const r = others[Math.floor(Math.random() * others.length)];
-        if (!opts.includes(r.cap)) opts.push(r.cap);
-      }
-    }
-
-    return { item, type, cor, opts: shuffle(opts) };
-  });
-}
-
-function OptionButton({ text, sel, cor, onClick, isFlag }) {
-  const ok = text === cor;
-  const isSel = sel === text;
+/* =================== CUSTOM FLAG OPTION BUTTON =================== */
+function FlagOptionButton({ text, selected, correct, onClick, isFlag }) {
+  const ok = text === correct;
+  const isSel = selected === text;
   let bg = "white", bd = "#ddd", cl = "#333";
-  if (sel !== null) {
+  if (selected !== null) {
     if (ok) { bg = "#c8e6c9"; bd = "#66BB6A"; cl = "#2e7d32"; }
     else if (isSel) { bg = "#ffcdd2"; bd = "#ef5350"; cl = "#c62828"; }
   }
   return (
     <button onClick={onClick} style={{
       background:bg, border:`2px solid ${bd}`, borderRadius:16, padding: isFlag ? "10px" : "14px 10px",
-      fontSize: isFlag ? 32 : 15, fontWeight:600, color:cl, cursor: sel !== null ? "default" : "pointer",
+      fontSize: isFlag ? 32 : 15, fontWeight:600, color:cl, cursor: selected !== null ? "default" : "pointer",
       transition:"all 0.3s", transform: isSel ? "scale(1.04)" : "scale(1)",
       boxShadow: isSel ? "0 4px 15px rgba(0,0,0,0.15)" : "0 2px 8px rgba(0,0,0,0.06)"
     }}>
-      {!isFlag && sel !== null && ok && "✅ "}
-      {!isFlag && sel !== null && isSel && !ok && "❌ "}
+      {!isFlag && selected !== null && ok && "✅ "}
+      {!isFlag && selected !== null && isSel && !ok && "❌ "}
       {text}
-      {isFlag && sel !== null && ok && " ✅"}
-      {isFlag && sel !== null && isSel && !ok && " ❌"}
+      {isFlag && selected !== null && ok && " ✅"}
+      {isFlag && selected !== null && isSel && !ok && " ❌"}
     </button>
   );
 }
 
-/* =================== GALLERY MODE =================== */
+/* =================== CUSTOM QUESTION RENDERER =================== */
+function renderBWQuestion(gradient) {
+  return (q, { selected, pick }) => {
+    const parsed = parseQuestion(q.prompt);
+    const isFlag = parsed.type === "country_to_flag";
+    return (
+      <>
+        <div style={{ background: gradient, borderRadius: 20, padding: 24, color: "white", textAlign: "center", width: "100%", maxWidth: 400 }}>
+          <div style={{ fontSize: 14, opacity: 0.85, marginBottom: 6 }}>{parsed.text}</div>
+          <div style={{ fontSize: parsed.displaySize, fontWeight: 800 }}>{parsed.display}</div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%", maxWidth: 400 }}>
+          {q.options.map((o, i) => (
+            <FlagOptionButton key={i} text={o} selected={selected} correct={q.correct} onClick={() => pick(o)} isFlag={isFlag} />
+          ))}
+        </div>
+      </>
+    );
+  };
+}
+
+/* =================== GALLERY MODE (game-specific) =================== */
 function GalleryMode({ onBack }) {
   const [sel, setSel] = useState(null);
   const [found, setFound] = useState(new Set());
@@ -343,328 +293,92 @@ function GalleryMode({ onBack }) {
   );
 }
 
-/* =================== LEARN MODE =================== */
-function LearnMode({ onBack, saveLearned }) {
-  const [idx, setIdx] = useState(0);
-  const [flipped, setFlipped] = useState(false);
-  const [learned, setLearned] = useState(new Set());
-  useEffect(() => { if (learned.size > 0) saveLearned?.(learned.size); }, [learned.size]);
-  const c = COUNTRIES[idx];
-
+/* =================== WIRED LEARN MODE =================== */
+function BWLearnMode(props) {
   return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16, padding:"0 8px" }}>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", maxWidth:420 }}>
-        <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        <span style={{ fontSize:14, fontWeight:600, color:"#666" }}>📚 {learned.size}/{COUNTRIES.length}</span>
-      </div>
-      <PBar v={learned.size} mx={COUNTRIES.length} />
-      <div onClick={() => setFlipped(!flipped)} style={{ width:"100%", maxWidth:380, minHeight:280, perspective:800, cursor:"pointer" }}>
-        <div style={{ width:"100%", minHeight:280, position:"relative", transformStyle:"preserve-3d", transition:"transform 0.5s", transform: flipped ? "rotateY(180deg)" : "rotateY(0)" }}>
-          {/* Front - Flag + Country */}
-          <div style={{ position:"absolute", inset:0, backfaceVisibility:"hidden", background:"linear-gradient(135deg,#0052D4,#4364F7)", borderRadius:24, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, color:"white", boxShadow:"0 10px 40px rgba(0,82,212,0.4)" }}>
-            <div style={{ fontSize:56, marginBottom:4 }}>{c.flag}</div>
-            <div style={{ fontSize:26, fontWeight:800, textAlign:"center" }}>{c.name}</div>
-            <div style={{
-              fontSize:11, marginTop:10, display:"inline-block",
-              background:"rgba(255,255,255,0.2)", padding:"4px 14px", borderRadius:20
-            }}>
-              {CONTINENTS[c.cont].emoji} {CONTINENTS[c.cont].name}
-            </div>
-            <div style={{ fontSize:12, marginTop:8, background:"rgba(255,255,255,0.15)", padding:"4px 14px", borderRadius:20 }}>🗣️ {c.lang} · 💰 {c.currency}</div>
-            <div style={{ fontSize:13, opacity:0.7, marginTop:12 }}>👆 Toca para ver más</div>
+    <LearnMode
+      {...props}
+      data={COUNTRIES}
+      frontGradient="linear-gradient(135deg,#0052D4,#4364F7)"
+      backGradient="linear-gradient(135deg,#6c5ce7,#a29bfe)"
+      progressGradient="linear-gradient(90deg,#0052D4,#6FB1FC)"
+      navColor="#0052D4"
+      renderFront={(c) => (
+        <>
+          <div style={{ fontSize:56, marginBottom:4 }}>{c.flag}</div>
+          <div style={{ fontSize:26, fontWeight:800, textAlign:"center" }}>{c.name}</div>
+          <div style={{
+            fontSize:11, marginTop:10, display:"inline-block",
+            background:"rgba(255,255,255,0.2)", padding:"4px 14px", borderRadius:20
+          }}>
+            {CONTINENTS[c.cont].emoji} {CONTINENTS[c.cont].name}
           </div>
-          {/* Back - Capital + Fun fact */}
-          <div style={{ position:"absolute", inset:0, backfaceVisibility:"hidden", background:"linear-gradient(135deg,#6c5ce7,#a29bfe)", borderRadius:24, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, color:"white", transform:"rotateY(180deg)", boxShadow:"0 10px 40px rgba(108,92,231,0.4)" }}>
-            <div style={{ fontSize:14, opacity:0.8 }}>🏛️ Capital de {c.name}</div>
-            <div style={{ fontSize:28, fontWeight:800, textAlign:"center", marginTop:4 }}>{c.cap}</div>
-            <div style={{ fontSize:12, marginTop:12, background:"rgba(255,255,255,0.2)", padding:"6px 14px", borderRadius:12, textAlign:"center", lineHeight:1.4 }}>💡 {c.fun}</div>
-            <div style={{ fontSize:12, marginTop:8, opacity:0.7 }}>{CONTINENTS[c.cont].emoji} {CONTINENTS[c.cont].name} · 💰 {c.currency}</div>
-            <div style={{ fontSize:13, opacity:0.7, marginTop:8 }}>👆 Toca para voltear</div>
-          </div>
-        </div>
-      </div>
-      <div style={{ display:"flex", gap:12, alignItems:"center", justifyContent:"center" }}>
-        <button onClick={() => { setFlipped(false); setTimeout(() => setIdx(i => (i - 1 + COUNTRIES.length) % COUNTRIES.length), 150); }} style={circ("#0052D4")}>◀</button>
-        <button onClick={() => setLearned(s => { const n = new Set(s); n.has(idx) ? n.delete(idx) : n.add(idx); return n; })} style={{ ...pill(learned.has(idx) ? "#66BB6A" : "#e0e0e0", learned.has(idx) ? "#fff" : "#333"), minWidth:140 }}>
-          {learned.has(idx) ? "✅ Aprendido" : "Marcar aprendido"}
-        </button>
-        <button onClick={() => { setFlipped(false); setTimeout(() => setIdx(i => (i + 1) % COUNTRIES.length), 150); }} style={circ("#0052D4")}>▶</button>
-      </div>
-      <div style={{ fontSize:14, color:"#999" }}>Tarjeta {idx + 1} de {COUNTRIES.length}</div>
-    </div>
+          <div style={{ fontSize:12, marginTop:8, background:"rgba(255,255,255,0.15)", padding:"4px 14px", borderRadius:20 }}>🗣️ {c.lang} · 💰 {c.currency}</div>
+        </>
+      )}
+      renderBack={(c) => (
+        <>
+          <div style={{ fontSize:14, opacity:0.8 }}>🏛️ Capital de {c.name}</div>
+          <div style={{ fontSize:28, fontWeight:800, textAlign:"center", marginTop:4 }}>{c.cap}</div>
+          <div style={{ fontSize:12, marginTop:12, background:"rgba(255,255,255,0.2)", padding:"6px 14px", borderRadius:12, textAlign:"center", lineHeight:1.4 }}>💡 {c.fun}</div>
+          <div style={{ fontSize:12, marginTop:8, opacity:0.7 }}>{CONTINENTS[c.cont].emoji} {CONTINENTS[c.cont].name} · 💰 {c.currency}</div>
+        </>
+      )}
+    />
   );
 }
 
-/* =================== QUIZ MODE =================== */
-function QuizMode({ onBack, saveQuiz }) {
-  const T = 15;
-  const [qs, setQs] = useState(() => makeQuestions(T));
-  const [qi, setQi] = useState(0);
-  const [sel, setSel] = useState(null);
-  const [sc, setSc] = useState(0);
-  const [str, setStr] = useState(0);
-  const [bStr, setBStr] = useState(0);
-  const [conf, setConf] = useState(0);
-  const [done, setDone] = useState(false);
-  useEffect(() => { if (done) saveQuiz?.(sc, T, bStr); }, [done]);
-
-  const gen = () => {
-    setQs(makeQuestions(T));
-    setQi(0); setSel(null); setSc(0); setStr(0); setBStr(0); setDone(false);
-  };
-
-  const pick = (o) => {
-    if (sel !== null) return;
-    setSel(o);
-    const ok = o === qs[qi].cor;
-    if (ok) { setSc(s => s + 1); setStr(s => { const n = s + 1; if (n > bStr) setBStr(n); return n; }); setConf(c => c + 1); }
-    else { setStr(0); }
-    setTimeout(() => { if (qi + 1 >= T) setDone(true); else { setQi(i => i + 1); setSel(null); } }, 1200);
-  };
-
-  if (done) {
-    return (
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16, padding:"0 8px" }}>
-        <Confetti active={conf} />
-        <div style={{ fontSize:48 }}>🎉</div>
-        <h2 style={{ fontSize:24, fontWeight:800, color:"#333" }}>¡Quiz terminado!</h2>
-        <Stars s={sc} t={T} />
-        <div style={{ background:"linear-gradient(135deg,#0052D4,#6FB1FC)", borderRadius:20, padding:24, color:"white", textAlign:"center", maxWidth:300, width:"100%" }}>
-          <div style={{ fontSize:42, fontWeight:800 }}>{sc}/{T}</div>
-          <div style={{ fontSize:15, opacity:0.9, marginTop:8 }}>Correctas</div>
-          <div style={{ fontSize:14, opacity:0.8, marginTop:4 }}>🔥 Mejor racha: {bStr}</div>
-        </div>
-        <div style={{ fontSize:18, textAlign:"center" }}>{sc >= 13 ? "🏆 ¡Experta en banderas!" : sc >= 9 ? "💪 ¡Muy bien!" : "📚 ¡Sigue practicando!"}</div>
-        <div style={{ display:"flex", gap:12 }}>
-          <button onClick={gen} style={pill("#0052D4","#fff")}>🔄 Jugar de nuevo</button>
-          <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!qs.length) return null;
-  const q = qs[qi];
-
-  const questionText = q.type === Q_FLAG_TO_COUNTRY
-    ? "¿De qué país es esta bandera?"
-    : q.type === Q_COUNTRY_TO_FLAG
-    ? "¿Cuál es la bandera de...?"
-    : "¿Cuál es la capital de...?";
-
-  const questionDisplay = q.type === Q_FLAG_TO_COUNTRY
-    ? q.item.flag
-    : `${q.item.flag} ${q.item.name}`;
-
+/* =================== WIRED QUIZ MODE =================== */
+function BWQuizMode(props) {
   return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:14, padding:"0 8px" }}>
-      <Confetti active={conf} />
-      <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:420, alignItems:"center" }}>
-        <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        <div aria-live="polite" style={{ display:"flex", gap:12, fontSize:14, fontWeight:600 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
-      </div>
-      <PBar v={qi + 1} mx={T} />
-      <div style={{ fontSize:13, color:"#999" }}>Pregunta {qi + 1} de {T}</div>
-      <div style={{ background:"linear-gradient(135deg,#0052D4,#4364F7)", borderRadius:20, padding:24, color:"white", textAlign:"center", width:"100%", maxWidth:400 }}>
-        <div style={{ fontSize:14, opacity:0.85, marginBottom:6 }}>{questionText}</div>
-        <div style={{ fontSize: q.type === Q_FLAG_TO_COUNTRY ? 56 : 24, fontWeight:800 }}>{questionDisplay}</div>
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, width:"100%", maxWidth:400 }}>
-        {q.opts.map((o, i) => (
-          <OptionButton key={i} text={o} sel={sel} cor={q.cor} onClick={() => pick(o)} isFlag={q.type === Q_COUNTRY_TO_FLAG} />
-        ))}
-      </div>
-    </div>
+    <QuizMode
+      {...props}
+      data={COUNTRIES}
+      questionTypes={QUESTION_TYPES}
+      count={15}
+      questionGradient="linear-gradient(135deg,#0052D4,#4364F7)"
+      progressGradient="linear-gradient(90deg,#0052D4,#6FB1FC)"
+      renderQuestion={renderBWQuestion("linear-gradient(135deg,#0052D4,#4364F7)")}
+    />
   );
 }
 
-/* =================== CHALLENGE MODE =================== */
-function ChallengeMode({ onBack, saveChallenge }) {
-  const [st, setSt] = useState("ready");
-  const [qs, setQs] = useState([]);
-  const [qi, setQi] = useState(0);
-  const [sc, setSc] = useState(0);
-  const [tm, setTm] = useState(60);
-  const [sel, setSel] = useState(null);
-  const [conf, setConf] = useState(0);
-  const [str, setStr] = useState(0);
-  const ref = useRef(null);
-  useEffect(() => { if (st === "done") saveChallenge?.(sc); }, [st]);
-
-  const start = () => {
-    setQs(makeQuestions(96));
-    setQi(0); setSc(0); setTm(60); setSel(null); setStr(0); setSt("playing");
-  };
-
-  useEffect(() => {
-    if (st !== "playing") return;
-    ref.current = setInterval(() => {
-      setTm(t => {
-        if (t <= 1) { clearInterval(ref.current); setSt("done"); return 0; }
-        return t - 1;
-      });
-    }, 1000);
-    return () => clearInterval(ref.current);
-  }, [st]);
-
-  const pick = (o) => {
-    if (sel !== null || st !== "playing") return;
-    setSel(o);
-    if (o === qs[qi].cor) { setSc(s => s + 1); setStr(s => s + 1); setConf(c => c + 1); }
-    else { setStr(0); }
-    setTimeout(() => {
-      if (qi + 1 >= qs.length) { clearInterval(ref.current); setSt("done"); }
-      else { setQi(i => i + 1); setSel(null); }
-    }, 600);
-  };
-
-  if (st === "ready") {
-    return (
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:20, padding:"0 8px" }}>
-        <button onClick={onBack} style={{ ...pill("#e0e0e0","#333"), alignSelf:"flex-start" }}>← Menú</button>
-        <div style={{ fontSize:64 }}>⚡</div>
-        <h2 style={{ fontSize:24, fontWeight:800, color:"#333", textAlign:"center" }}>Desafío Relámpago</h2>
-        <div style={{ background:"linear-gradient(135deg,#e17055,#d63031)", borderRadius:20, padding:24, color:"white", textAlign:"center", maxWidth:350, width:"100%" }}>
-          <p style={{ fontSize:16, margin:0, lineHeight:1.6 }}>¡Tienes <strong>60 segundos</strong> para identificar la mayor cantidad de banderas y capitales! 🏁</p>
-        </div>
-        <button onClick={start} style={{ ...pill("#0052D4","#fff"), fontSize:20, padding:"14px 40px", animation:"bdmPulse 1.5s infinite" }}>🚀 ¡Empezar!</button>
-        <style>{`@keyframes bdmPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}`}</style>
-      </div>
-    );
-  }
-
-  if (st === "done") {
-    return (
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16, padding:"0 8px" }}>
-        <Confetti active={conf} />
-        <div style={{ fontSize:48 }}>⚡</div>
-        <h2 style={{ fontSize:24, fontWeight:800, color:"#333" }}>¡Tiempo!</h2>
-        <Stars s={sc} t={Math.max(sc + 3, 10)} />
-        <div style={{ background:"linear-gradient(135deg,#0052D4,#6FB1FC)", borderRadius:20, padding:24, color:"white", textAlign:"center", maxWidth:300, width:"100%" }}>
-          <div style={{ fontSize:48, fontWeight:800 }}>{sc}</div>
-          <div style={{ fontSize:16 }}>correctas en 60s</div>
-        </div>
-        <div style={{ fontSize:18, textAlign:"center" }}>{sc >= 15 ? "🏆 ¡Increíble!" : sc >= 10 ? "🔥 ¡Muy rápida!" : sc >= 5 ? "💪 ¡Bien!" : "📚 ¡Practica más!"}</div>
-        <div style={{ display:"flex", gap:12 }}>
-          <button onClick={start} style={pill("#0052D4","#fff")}>⚡ Otra vez</button>
-          <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!qs.length) return null;
-  const q = qs[qi];
-  const tc = tm <= 10 ? "#ef5350" : tm <= 30 ? "#FFA726" : "#66BB6A";
-
-  const questionText = q.type === Q_FLAG_TO_COUNTRY
-    ? "¿De qué país es?"
-    : q.type === Q_COUNTRY_TO_FLAG
-    ? "¿Bandera de...?"
-    : "¿Capital de...?";
-
-  const questionDisplay = q.type === Q_FLAG_TO_COUNTRY
-    ? q.item.flag
-    : `${q.item.flag} ${q.item.name}`;
-
+/* =================== WIRED CHALLENGE MODE =================== */
+function BWChallengeMode(props) {
   return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12, padding:"0 8px" }}>
-      <Confetti active={conf} />
-      <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:420, alignItems:"center" }}>
-        <div aria-live="assertive" aria-atomic="true" style={{ fontSize:28, fontWeight:800, color:tc, animation: tm <= 10 ? "bdmPulse 0.5s infinite" : "none" }}>⏱ {tm}s</div>
-        <div aria-live="polite" style={{ display:"flex", gap:12, fontSize:15, fontWeight:700 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
-      </div>
-      <div style={{ width:"100%", maxWidth:420, height:8, background:"#e0e0e0", borderRadius:4, overflow:"hidden" }}>
-        <div style={{ width:`${(tm/60)*100}%`, height:"100%", background:tc, transition:"width 1s linear", borderRadius:4 }} />
-      </div>
-      <div style={{ background:`linear-gradient(135deg,${tm <= 10 ? "#ff5252,#f44336" : "#0052D4,#4364F7"})`, borderRadius:18, padding:20, color:"white", textAlign:"center", width:"100%", maxWidth:400 }}>
-        <div style={{ fontSize:13, opacity:0.85 }}>{questionText}</div>
-        <div style={{ fontSize: q.type === Q_FLAG_TO_COUNTRY ? 48 : 22, fontWeight:800 }}>{questionDisplay}</div>
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, width:"100%", maxWidth:400 }}>
-        {q.opts.map((o, i) => (
-          <OptionButton key={i} text={o} sel={sel} cor={q.cor} onClick={() => pick(o)} isFlag={q.type === Q_COUNTRY_TO_FLAG} />
-        ))}
-      </div>
-      <style>{`@keyframes bdmPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}`}</style>
-    </div>
+    <ChallengeMode
+      {...props}
+      data={COUNTRIES}
+      questionTypes={QUESTION_TYPES}
+      questionGradient="linear-gradient(135deg,#0052D4,#4364F7)"
+      renderQuestion={renderBWQuestion("linear-gradient(135deg,#0052D4,#4364F7)")}
+    />
   );
 }
 
-/* =================== MAIN GAME COMPONENT =================== */
+/* =================== MAIN COMPONENT =================== */
 export default function BanderasMundo() {
-  const [screen, setScreen] = useState("menu");
-  const [floats, setFloats] = useState([]);
   const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("banderas-mundo");
 
-  useEffect(() => {
-    if (screen !== "menu") return;
-    const iv = setInterval(() => {
-      setFloats(f => [...f, { id: Date.now(), emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)], x: Math.random() * 90 + 5 }].slice(-8));
-    }, 1800);
-    return () => clearInterval(iv);
-  }, [screen]);
-
-  const screens = { gallery: GalleryMode, learn: LearnMode, quiz: QuizMode, challenge: ChallengeMode };
-  const Screen = screens[screen];
-
-  if (Screen) {
-    return (
-      <div style={gameCtn}>
-        <Screen onBack={() => setScreen("menu")} saveQuiz={saveQuiz} saveChallenge={saveChallenge} saveLearned={saveLearned} />
-      </div>
-    );
-  }
-
-  const modes = [
-    { key:"gallery", icon:"🏳️", title:"Galería de Banderas", desc:"Explora las banderas de 50 países del mundo", gradient:"linear-gradient(135deg,#0052D4,#4364F7)" },
-    { key:"learn", icon:"📚", title:"Aprende", desc:"Tarjetas con banderas, capitales y datos curiosos", gradient:"linear-gradient(135deg,#6c5ce7,#a29bfe)" },
-    { key:"quiz", icon:"🧠", title:"Quiz", desc:"¿Reconoces todas las banderas?", gradient:"linear-gradient(135deg,#fd79a8,#e84393)" },
-    { key:"challenge", icon:"⚡", title:"Desafío Relámpago", desc:"60 segundos. ¿Cuántas aciertas?", gradient:"linear-gradient(135deg,#e17055,#d63031)" },
-  ];
-
   return (
-    <div style={gameCtn}>
-      <div style={{ position:"relative", overflow:"hidden", minHeight:"100%" }}>
-        {floats.map(f => (
-          <div key={f.id} style={{ position:"absolute", left:`${f.x}%`, top:-30, fontSize:24, animation:"bdmFloat 4s ease-in forwards", pointerEvents:"none", zIndex:0 }}>{f.emoji}</div>
-        ))}
-        <style>{`@keyframes bdmFloat{0%{transform:translateY(0);opacity:1}100%{transform:translateY(600px);opacity:0}}`}</style>
-        <div style={{ position:"relative", zIndex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:20, padding:"0 8px" }}>
-          <div style={{ textAlign:"center" }}>
-            <div style={{ fontSize:48, marginBottom:4 }}>🌍</div>
-            <h1 style={{ fontSize:28, fontWeight:900, margin:0, background:"linear-gradient(135deg,#0052D4,#6FB1FC)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
-              Banderas del Mundo
-            </h1>
-            <p style={{ fontSize:15, color:"#777", margin:"4px 0 0" }}>¡Aprende las banderas de 50 países!</p>
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:14, width:"100%", maxWidth:380 }}>
-            {modes.map(m => (
-              <button key={m.key} onClick={() => setScreen(m.key)} style={{
-                background:m.gradient, border:"none", borderRadius:20, padding:"20px 22px",
-                color:"white", textAlign:"left", cursor:"pointer", transition:"transform 0.2s",
-                boxShadow:"0 6px 25px rgba(0,0,0,0.15)", display:"flex", alignItems:"center", gap:16
-              }}
-              onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
-              onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-                <span style={{ fontSize:36 }}>{m.icon}</span>
-                <div>
-                  <div style={{ fontSize:18, fontWeight:800 }}>{m.title}</div>
-                  <div style={{ fontSize:13, opacity:0.9 }}>{m.desc}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-          <div style={{ fontSize:12, color:"#bbb", textAlign:"center", marginTop:8 }}>50 países · 5 continentes · Banderas y capitales · ¡A jugar! 🎮</div>
-          <a href="/" style={{ fontSize:13, color:"#aaa", textDecoration:"none", textAlign:"center" }}>← Volver al menú principal</a>
-        </div>
-      </div>
-    </div>
+    <GameShell
+      config={{
+        id: "banderas-mundo",
+        title: "Banderas del Mundo",
+        icon: "🌍",
+        gradient: "linear-gradient(180deg,#f0f4ff 0%,#e8f0ff 50%,#f5f0ff 100%)",
+        titleGradient: "linear-gradient(135deg,#0052D4,#6FB1FC)",
+        subtitle: "¡Aprende las banderas de 50 países!",
+        footer: "50 países · 5 continentes · Banderas y capitales · ¡A jugar! 🎮",
+        emojis: ["🎉","⭐","🌟","💫","🏳️","🏆","👏","💪","🌎","🌍","🌏","🎊"],
+        modes: [
+          { key:"gallery", icon:"🏳️", title:"Galería de Banderas", desc:"Explora las banderas de 50 países del mundo", gradient:"linear-gradient(135deg,#0052D4,#4364F7)", component: GalleryMode },
+          { key:"learn", icon:"📚", title:"Aprende", desc:"Tarjetas con banderas, capitales y datos curiosos", gradient:"linear-gradient(135deg,#6c5ce7,#a29bfe)", component: BWLearnMode },
+          { key:"quiz", icon:"🧠", title:"Quiz", desc:"¿Reconoces todas las banderas?", gradient:"linear-gradient(135deg,#fd79a8,#e84393)", component: BWQuizMode },
+          { key:"challenge", icon:"⚡", title:"Desafío Relámpago", desc:"60 segundos. ¿Cuántas aciertas?", gradient:"linear-gradient(135deg,#e17055,#d63031)", component: BWChallengeMode },
+        ],
+      }}
+      progressHooks={{ saveQuiz, saveChallenge, saveLearned }}
+    />
   );
 }
-
-const gameCtn = {
-  fontFamily:"'Segoe UI',system-ui,-apple-system,sans-serif",
-  maxWidth:640, margin:"0 auto", padding:"24px 12px", minHeight:"100vh",
-  background:"linear-gradient(180deg,#f0f4ff 0%,#e8f0ff 50%,#f5f0ff 100%)"
-};
