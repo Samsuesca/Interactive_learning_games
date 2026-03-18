@@ -442,6 +442,8 @@ function WordPuzzle({ wordData, onSolved, onFailed, timeLimit, showHint, showCat
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, width: "100%" }}>
       {/* Timer */}
       <div
+        aria-live="assertive"
+        aria-atomic="true"
         style={{
           fontSize: 36,
           fontWeight: 900,
@@ -966,7 +968,7 @@ function QuizMode({ onBack, saveQuiz }) {
           <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: "#333" }}>
             🧠 Quiz · Palabra {currentIndex + 1}/{QUIZ_TOTAL}
           </h2>
-          <div style={{ fontSize: 12, color: "#999" }}>
+          <div aria-live="polite" style={{ fontSize: 12, color: "#999" }}>
             Puntaje: {score} {streak >= 3 ? `· 🔥 Racha: ${streak}` : ""}
           </div>
         </div>
@@ -1109,6 +1111,8 @@ function ChallengeMode({ onBack, saveChallenge }) {
           </div>
         </div>
         <div
+          aria-live="assertive"
+          aria-atomic="true"
           style={{
             fontSize: 28,
             fontWeight: 900,
@@ -1341,7 +1345,7 @@ export default function PalabrasRevueltas() {
 
 const gameCtn = {
   fontFamily: "'Segoe UI',system-ui,-apple-system,sans-serif",
-  maxWidth: 480,
+  maxWidth: 640,
   margin: "0 auto",
   padding: "24px 12px",
   minHeight: "100vh",

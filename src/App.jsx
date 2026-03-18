@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import GameErrorBoundary from "./components/GameErrorBoundary";
 import { getAllProgress } from "./hooks/useGameProgress";
 
@@ -15,60 +15,76 @@ const games = [
   {
     path: "/explora-colombia",
     title: "Explora Colombia",
-    desc: "Aprende los departamentos, capitales y regiones de Colombia con mapas, tarjetas, quiz y desafíos.",
-    icon: "🇨🇴",
+    desc: "Aprende los departamentos, capitales y regiones de Colombia con mapas, tarjetas, quiz y desafios.",
+    icon: "\u{1F1E8}\u{1F1F4}",
     gradient: "linear-gradient(135deg, #F9A825, #f12711)",
     component: ExploraColombia,
   },
   {
     path: "/capitales-sudamerica",
-    title: "Capitales de Sudamérica",
-    desc: "Aprende las capitales de los 12 países sudamericanos con mapa, tarjetas y quiz.",
-    icon: "🌎",
+    title: "Capitales de Sudamerica",
+    desc: "Aprende las capitales de los 12 paises sudamericanos con mapa, tarjetas y quiz.",
+    icon: "\u{1F30E}",
     gradient: "linear-gradient(135deg, #11998e, #38ef7d)",
     component: CapitalesSudamerica,
   },
   {
     path: "/banderas-mundo",
     title: "Banderas del Mundo",
-    desc: "Aprende las banderas, capitales y datos de 50 países de todo el mundo.",
-    icon: "🌍",
+    desc: "Aprende las banderas, capitales y datos de 50 paises de todo el mundo.",
+    icon: "\u{1F30D}",
     gradient: "linear-gradient(135deg, #0052D4, #6FB1FC)",
     component: BanderasMundo,
   },
   {
     path: "/que-animal-soy",
-    title: "¿Qué Animal Soy?",
-    desc: "Adivina el animal con 5 pistas progresivas. ¡Menos pistas, más puntos!",
-    icon: "🐾",
+    title: "\u00BFQue Animal Soy?",
+    desc: "Adivina el animal con 5 pistas progresivas. \u00A1Menos pistas, mas puntos!",
+    icon: "\u{1F43E}",
     gradient: "linear-gradient(135deg, #f5af19, #f12711)",
     component: QueAnimalSoy,
   },
   {
     path: "/figuras-geometricas",
-    title: "Figuras Geométricas",
-    desc: "Aprende figuras 2D, polígonos y volúmenes 3D con fórmulas, propiedades y quiz interactivos.",
-    icon: "📐",
+    title: "Figuras Geometricas",
+    desc: "Aprende figuras 2D, poligonos y volumenes 3D con formulas, propiedades y quiz interactivos.",
+    icon: "\u{1F4D0}",
     gradient: "linear-gradient(135deg, #667eea, #764ba2)",
     component: FigurasGeometricas,
   },
   {
     path: "/monumentos-famosos",
     title: "Monumentos Famosos",
-    desc: "Ubica los monumentos más icónicos del mundo en un mapa interactivo.",
-    icon: "🏛️",
+    desc: "Ubica los monumentos mas iconicos del mundo en un mapa interactivo.",
+    icon: "\u{1F3DB}\u{FE0F}",
     gradient: "linear-gradient(135deg, #FF8F00, #F4511E)",
     component: MonumentosFamosos,
   },
   {
     path: "/palabras-revueltas",
     title: "Palabras Revueltas",
-    desc: "Ordena las letras y forma la palabra correcta. Animales, frutas, países y más.",
-    icon: "🔤",
+    desc: "Ordena las letras y forma la palabra correcta. Animales, frutas, paises y mas.",
+    icon: "\u{1F524}",
     gradient: "linear-gradient(135deg, #667eea, #764ba2)",
     component: PalabrasRevueltas,
   },
 ];
+
+// Issue #2: Update document title based on current route
+function TitleUpdater() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const game = games.find((g) => g.path === location.pathname);
+    if (game) {
+      document.title = `${game.title} - Juegos para Aprender`;
+    } else {
+      document.title = "Juegos para Aprender";
+    }
+  }, [location.pathname]);
+
+  return null;
+}
 
 function LoadingSpinner() {
   return (
@@ -101,16 +117,16 @@ function ProgressBadge({ progress }) {
   return (
     <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
       <span style={{ background: "rgba(255,255,255,0.25)", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
-        🧠 {progress.quizBest}/{progress.quizTotal}
+        \u{1F9E0} {progress.quizBest}/{progress.quizTotal}
       </span>
       {progress.challengeBest > 0 && (
         <span style={{ background: "rgba(255,255,255,0.25)", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
-          ⚡ {progress.challengeBest}
+          \u26A1 {progress.challengeBest}
         </span>
       )}
       {progress.bestStreak > 0 && (
         <span style={{ background: "rgba(255,255,255,0.25)", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
-          🔥 {progress.bestStreak}
+          \u{1F525} {progress.bestStreak}
         </span>
       )}
     </div>
@@ -124,10 +140,10 @@ function Home() {
   return (
     <div style={homeCtn}>
       <div style={{ textAlign: "center", marginBottom: 8 }}>
-        <div style={{ fontSize: 56 }}>🎮</div>
+        <div style={{ fontSize: 56 }}>\u{1F3AE}</div>
         <h1 style={titleStyle}>Juegos para Aprender</h1>
         <p style={{ fontSize: 16, color: "#777", margin: "4px 0 0" }}>
-          ¡Elige un juego y empieza a aprender jugando!
+          \u00A1Elige un juego y empieza a aprender jugando!
         </p>
       </div>
 
@@ -165,7 +181,7 @@ function Home() {
       </div>
 
       <div style={{ fontSize: 12, color: "#bbb", textAlign: "center", marginTop: 16 }}>
-        Hecho con ❤️ para aprender jugando
+        Hecho con \u2764\u{FE0F} para aprender jugando
       </div>
     </div>
   );
@@ -174,6 +190,7 @@ function Home() {
 export default function App() {
   return (
     <BrowserRouter>
+      <TitleUpdater />
       <Suspense fallback={<LoadingSpinner />}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -192,7 +209,7 @@ export default function App() {
 
 const homeCtn = {
   fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-  maxWidth: 480,
+  maxWidth: 640,
   margin: "0 auto",
   padding: "40px 16px",
   minHeight: "100vh",
