@@ -1,8 +1,8 @@
 import { useState } from "react";
 import useGameProgress from "../../hooks/useGameProgress";
 import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
-import { Confetti, OptionButton } from "../../components/game";
-import { shuffle, pill } from "../../components/game/utils";
+import { OptionButton } from "../../components/game";
+import { pill } from "../../components/game/utils";
 
 /* ───────── DATOS DEL JUEGO ───────── */
 
@@ -457,93 +457,7 @@ function ShapeSVG({ shapeId, size = 120, color }) {
   );
 }
 
-/* ───────── GENERADOR DE PREGUNTAS (game-specific) ───────── */
-
-function makeShapeQuestions(count) {
-  const types = [
-    // Tipo 1: formula de area/volumen
-    (item) => {
-      const label = item.type === "2D" ? "area" : "volumen";
-      const correct = item.formula;
-      let options = [correct];
-      const pool = SHAPES.filter((s) => s.id !== item.id && s.type === item.type);
-      while (options.length < 4 && pool.length > 0) {
-        const r = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-        if (!options.includes(r.formula)) options.push(r.formula);
-      }
-      const poolAll = SHAPES.filter((s) => s.id !== item.id);
-      while (options.length < 4) {
-        const r = poolAll[Math.floor(Math.random() * poolAll.length)];
-        if (!options.includes(r.formula)) options.push(r.formula);
-      }
-      return { prompt: `¿Cuál es la fórmula del ${label} del ${item.name}?`, correct, options: shuffle(options), showShape: true, item };
-    },
-    // Tipo 2: que figura es esta?
-    (item) => {
-      const correct = item.name;
-      let options = [correct];
-      const pool = SHAPES.filter((s) => s.id !== item.id);
-      while (options.length < 4) {
-        const r = pool[Math.floor(Math.random() * pool.length)];
-        if (!options.includes(r.name)) options.push(r.name);
-      }
-      return { prompt: "¿Qué figura es esta?", correct, options: shuffle(options), showShape: true, item };
-    },
-    // Tipo 3: cuantos lados/caras
-    (item) => {
-      if (item.sides === 0) return null;
-      const label = item.type === "2D" ? "lados" : "caras";
-      const correct = `${item.sides} ${label}`;
-      let options = [correct];
-      const candidates = item.type === "2D" ? [3, 4, 5, 6, 8] : [2, 3, 4, 5, 6];
-      for (const c of shuffle(candidates)) {
-        const v = `${c} ${label}`;
-        if (!options.includes(v) && options.length < 4) options.push(v);
-      }
-      return { prompt: `¿Cuántos ${label} tiene el ${item.name}?`, correct, options: shuffle(options), showShape: false, item };
-    },
-    // Tipo 4: 2D o 3D?
-    (item) => {
-      const correct = item.type;
-      return {
-        prompt: `¿El ${item.name} es una figura 2D o 3D?`,
-        correct,
-        options: shuffle(["2D", "3D", "Ambas", "Ninguna"]),
-        showShape: true,
-        item,
-      };
-    },
-    // Tipo 5: categoria
-    (item) => {
-      const correct = item.category;
-      const allCats = [...new Set(SHAPES.map((s) => s.category))];
-      let options = [correct];
-      for (const c of shuffle(allCats)) {
-        if (!options.includes(c) && options.length < 4) options.push(c);
-      }
-      while (options.length < 4) options.push("Ninguna de las anteriores");
-      return { prompt: `¿A qué categoría pertenece el ${item.name}?`, correct, options: shuffle(options), showShape: true, item };
-    },
-  ];
-
-  const questions = [];
-  const pool = shuffle([...SHAPES]);
-
-  for (let i = 0; i < count; i++) {
-    const item = pool[i % pool.length];
-    const typeIdx = Math.floor(Math.random() * types.length);
-    const q = types[typeIdx](item);
-    if (q) questions.push(q);
-    else {
-      const fallback = types[1](item);
-      questions.push(fallback);
-    }
-  }
-
-  return shuffle(questions).slice(0, count);
-}
-
-/* ───────── QUESTION TYPES (for engine compatibility) ───────── */
+/* ───────── QUESTION TYPES ───────── */
 
 const QUESTION_TYPES = [
   {
@@ -551,8 +465,16 @@ const QUESTION_TYPES = [
     answer: (item) => item.formula,
   },
   {
-    prompt: (item) => `¿Qué figura tiene la fórmula ${item.formula}?`,
+    prompt: (item) => `¿Qué figura es esta? (${item.type})`,
     answer: (item) => item.name,
+  },
+  {
+    prompt: (item) => `¿A qué categoría pertenece el ${item.name}?`,
+    answer: (item) => item.category,
+  },
+  {
+    prompt: (item) => `¿Cuál es la fórmula del ${item.type === "2D" ? "perímetro" : "superficie"} del ${item.name}?`,
+    answer: (item) => item.perimeter,
   },
 ];
 
@@ -570,7 +492,7 @@ function renderShapeQuestion(q, { selected, pick }) {
         width: "100%",
         maxWidth: 400,
       }}>
-        {q.showShape && q.item && (
+        {q.item && (
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
             <ShapeSVG shapeId={q.item.id} size={100} color={q.item.color} />
           </div>
@@ -795,7 +717,6 @@ function FGQuizMode(props) {
       questionGradient="linear-gradient(135deg,#667eea,#764ba2)"
       progressGradient="linear-gradient(90deg,#667eea,#764ba2)"
       renderQuestion={renderShapeQuestion}
-      _makeQuestions={() => makeShapeQuestions(15)}
     />
   );
 }
@@ -810,7 +731,6 @@ function FGChallengeMode(props) {
       questionTypes={QUESTION_TYPES}
       questionGradient="linear-gradient(135deg,#667eea,#764ba2)"
       renderQuestion={renderShapeQuestion}
-      _makeQuestions={() => makeShapeQuestions(96)}
     />
   );
 }
