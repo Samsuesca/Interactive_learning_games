@@ -10,6 +10,11 @@ export default function useTimer(initialTime = 60) {
     setStatus("running");
   }, [initialTime]);
 
+  const startWith = useCallback((customTime) => {
+    setTime(customTime);
+    setStatus("running");
+  }, []);
+
   const stop = useCallback(() => {
     clearInterval(ref.current);
     setStatus("done");
@@ -36,5 +41,5 @@ export default function useTimer(initialTime = 60) {
     return () => clearInterval(ref.current);
   }, [status]);
 
-  return { time, status, start, stop, reset };
+  return { time, status, start, startWith, stop, reset };
 }

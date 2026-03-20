@@ -37,8 +37,15 @@ export const circ = (bg) => ({
   boxShadow: "0 3px 10px rgba(0,0,0,0.15)",
 });
 
+/** Difficulty level configurations */
+export const DIFFICULTIES = [
+  { key: "easy", label: "Fácil", icon: "😊", quizCount: 15, challengeTime: 90, options: 4 },
+  { key: "normal", label: "Normal", icon: "🧠", quizCount: 12, challengeTime: 60, options: 4 },
+  { key: "hard", label: "Difícil", icon: "🔥", quizCount: 10, challengeTime: 45, options: 6 },
+];
+
 /** Generate quiz questions from data array */
-export function makeQuestions({ data, count, questionTypes }) {
+export function makeQuestions({ data, count, questionTypes, optionCount = 4 }) {
   const shuffled = shuffle(data);
   const items = shuffled.slice(0, Math.min(count, data.length));
 
@@ -48,7 +55,7 @@ export function makeQuestions({ data, count, questionTypes }) {
     const pool = data.filter((d) => d !== item);
 
     const options = [correct];
-    while (options.length < 4 && pool.length > 0) {
+    while (options.length < optionCount && pool.length > 0) {
       const idx = Math.floor(Math.random() * pool.length);
       const val = type.answer(pool[idx]);
       if (!options.includes(val)) options.push(val);
