@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import useGameProgress from "../../hooks/useGameProgress";
+import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
+import { Confetti, Stars, ProgressBar } from "../../components/game";
+import { shuffle, pill } from "../../components/game/utils";
 
 /* =================== DATOS DEL JUEGO =================== */
 const ANIMALS = [
@@ -228,66 +231,22 @@ const ANIMALS = [
 const EMOJIS = ["🎉","⭐","🌟","💫","🐾","🏆","👏","💪","🦁","🐬","🌺","🎊"];
 const POINTS = [50, 40, 30, 20, 10];
 
-/* =================== UTILIDADES =================== */
-function shuffle(a) {
-  let b = [...a];
-  for (let i = b.length - 1; i > 0; i--) {
-    let j = Math.floor(Math.random() * (i + 1));
-    [b[i], b[j]] = [b[j], b[i]];
-  }
-  return b;
-}
+const QUESTION_TYPES = [
+  {
+    prompt: (item) => `${item.emoji} ¿Qué animal ${item.clues[Math.floor(Math.random() * 3)].toLowerCase()}?`,
+    answer: (item) => item.name,
+  },
+  {
+    prompt: (item) => `¿A qué categoría pertenece ${item.emoji} ${item.name}?`,
+    answer: (item) => item.category,
+  },
+  {
+    prompt: (item) => `¿Dónde vive ${item.emoji} ${item.name}?`,
+    answer: (item) => item.habitat,
+  },
+];
 
-const pill = (bg, c) => ({ background:bg, color:c, border:"none", borderRadius:30, padding:"10px 20px", fontSize:14, fontWeight:700, cursor:"pointer", boxShadow:"0 2px 8px rgba(0,0,0,0.1)" });
-const circ = (bg) => ({ background:bg, color:"#fff", border:"none", borderRadius:"50%", width:44, height:44, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 3px 10px rgba(0,0,0,0.15)" });
-
-/* =================== COMPONENTES COMPARTIDOS =================== */
-function Confetti({ active }) {
-  const [p, setP] = useState([]);
-  useEffect(() => {
-    if (!active) { setP([]); return; }
-    setP(Array.from({ length: 25 }, (_, i) => ({
-      id: i, x: Math.random() * 100, dl: Math.random() * 0.5,
-      c: ["#FFD700","#FF6B6B","#4ECDC4","#45B7D1","#F9A825","#AB47BC"][i % 6],
-      s: Math.random() * 8 + 4
-    })));
-    const t = setTimeout(() => setP([]), 1500);
-    return () => clearTimeout(t);
-  }, [active]);
-  if (!p.length) return null;
-  return (
-    <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:999 }}>
-      {p.map(v => (
-        <div key={v.id} style={{
-          position:"absolute", left:`${v.x}%`, top:-10, width:v.s, height:v.s,
-          borderRadius:"50%", background:v.c, animation:`qasFall 1.5s ${v.dl}s ease-in forwards`
-        }} />
-      ))}
-      <style>{`@keyframes qasFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}`}</style>
-    </div>
-  );
-}
-
-function Stars({ s, t }) {
-  const n = t > 0 ? (s / t >= 0.9 ? 3 : s / t >= 0.6 ? 2 : s / t > 0 ? 1 : 0) : 0;
-  return (
-    <div style={{ display:"flex", gap:4, justifyContent:"center", fontSize:32 }}>
-      {[0,1,2].map(i => (
-        <span key={i} style={{ opacity: i < n ? 1 : 0.25 }}>{i < n ? "⭐" : "☆"}</span>
-      ))}
-    </div>
-  );
-}
-
-function PBar({ v, mx, color }) {
-  return (
-    <div style={{ width:"100%", height:10, background:"#e0e0e0", borderRadius:5, overflow:"hidden" }}>
-      <div style={{ width:`${mx > 0 ? (v/mx)*100 : 0}%`, height:"100%", background: color || "linear-gradient(90deg,#f5af19,#f12711)", borderRadius:5, transition:"width 0.5s" }} />
-    </div>
-  );
-}
-
-/* =================== MODO CLÁSICO - ¿Qué animal soy? =================== */
+/* =================== MODO CLÁSICO - ¿Qué animal soy? (game-specific) =================== */
 function ClueMode({ onBack }) {
   const TOTAL_ROUNDS = 10;
   const [rounds, setRounds] = useState([]);
@@ -350,7 +309,7 @@ function ClueMode({ onBack }) {
         <Confetti active={conf} />
         <div style={{ fontSize:48 }}>🏆</div>
         <h2 style={{ fontSize:24, fontWeight:800, color:"#333" }}>¡Juego terminado!</h2>
-        <Stars s={pct >= 0.9 ? 3 : pct >= 0.6 ? 2 : pct > 0 ? 1 : 0} t={3} />
+        <Stars score={pct >= 0.9 ? 3 : pct >= 0.6 ? 2 : pct > 0 ? 1 : 0} total={3} />
         <div style={{ background:"linear-gradient(135deg,#f5af19,#f12711)", borderRadius:20, padding:24, color:"white", textAlign:"center", maxWidth:300, width:"100%" }}>
           <div style={{ fontSize:42, fontWeight:800 }}>{score}</div>
           <div style={{ fontSize:14, opacity:0.9, marginTop:4 }}>de {maxScore} puntos posibles</div>
@@ -384,7 +343,7 @@ function ClueMode({ onBack }) {
         </div>
       </div>
 
-      <PBar v={ri + 1} mx={TOTAL_ROUNDS} />
+      <ProgressBar value={ri + 1} max={TOTAL_ROUNDS} gradient="linear-gradient(90deg,#f5af19,#f12711)" />
       <div style={{ fontSize:13, color:"#999" }}>Ronda {ri + 1} de {TOTAL_ROUNDS}</div>
 
       {/* Clue card */}
@@ -472,188 +431,8 @@ function ClueMode({ onBack }) {
   );
 }
 
-/* =================== MODO APRENDER =================== */
-function LearnMode({ onBack, saveLearned }) {
-  const [idx, setIdx] = useState(0);
-  const [flipped, setFlipped] = useState(false);
-  const [learned, setLearned] = useState(new Set());
-  useEffect(() => { if (learned.size > 0) saveLearned?.(learned.size); }, [learned.size]);
-  const a = ANIMALS[idx];
-
-  return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16, padding:"0 8px" }}>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", maxWidth:420 }}>
-        <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        <span style={{ fontSize:14, fontWeight:600, color:"#666" }}>📚 {learned.size}/{ANIMALS.length}</span>
-      </div>
-      <PBar v={learned.size} mx={ANIMALS.length} color="linear-gradient(90deg,#f5af19,#f12711)" />
-
-      {/* Flip card */}
-      <div onClick={() => setFlipped(!flipped)} style={{ width:"100%", maxWidth:380, minHeight:300, perspective:800, cursor:"pointer" }}>
-        <div style={{ width:"100%", minHeight:300, position:"relative", transformStyle:"preserve-3d", transition:"transform 0.5s", transform: flipped ? "rotateY(180deg)" : "rotateY(0)" }}>
-          {/* Front */}
-          <div style={{
-            position:"absolute", inset:0, backfaceVisibility:"hidden",
-            background:"linear-gradient(135deg,#f5af19,#f12711)", borderRadius:24,
-            display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-            padding:24, color:"white", boxShadow:"0 10px 40px rgba(245,175,25,0.4)"
-          }}>
-            <div style={{ fontSize:64, marginBottom:8 }}>{a.emoji}</div>
-            <div style={{ fontSize:28, fontWeight:800, textAlign:"center" }}>{a.name}</div>
-            <div style={{ fontSize:12, marginTop:12, background:"rgba(255,255,255,0.2)", padding:"4px 14px", borderRadius:20 }}>
-              {a.category} · {a.habitat}
-            </div>
-            <div style={{ fontSize:13, opacity:0.7, marginTop:16 }}>👆 Toca para ver las pistas</div>
-          </div>
-
-          {/* Back */}
-          <div style={{
-            position:"absolute", inset:0, backfaceVisibility:"hidden",
-            background:"linear-gradient(135deg,#6c5ce7,#a29bfe)", borderRadius:24,
-            display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-            padding:20, color:"white", transform:"rotateY(180deg)", boxShadow:"0 10px 40px rgba(108,92,231,0.4)"
-          }}>
-            <div style={{ fontSize:14, opacity:0.8, marginBottom:8 }}>🔍 Pistas de {a.emoji} {a.name}</div>
-            <div style={{ display:"flex", flexDirection:"column", gap:6, width:"100%" }}>
-              {a.clues.map((clue, i) => (
-                <div key={i} style={{
-                  background:"rgba(255,255,255,0.15)", borderRadius:10, padding:"6px 10px",
-                  fontSize:12, lineHeight:1.4
-                }}>
-                  <span style={{ opacity:0.6 }}>#{i + 1}</span> {clue}
-                </div>
-              ))}
-            </div>
-            <div style={{ fontSize:11, marginTop:10, background:"rgba(255,255,255,0.2)", padding:"6px 12px", borderRadius:12, textAlign:"center", lineHeight:1.4 }}>
-              💡 {a.fun}
-            </div>
-            <div style={{ fontSize:13, opacity:0.7, marginTop:8 }}>👆 Toca para voltear</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div style={{ display:"flex", gap:12, alignItems:"center", justifyContent:"center" }}>
-        <button onClick={() => { setFlipped(false); setTimeout(() => setIdx(i => (i - 1 + ANIMALS.length) % ANIMALS.length), 150); }} style={circ("#f5af19")}>◀</button>
-        <button onClick={() => setLearned(s => { const n = new Set(s); n.has(idx) ? n.delete(idx) : n.add(idx); return n; })} style={{ ...pill(learned.has(idx) ? "#66BB6A" : "#e0e0e0", learned.has(idx) ? "#fff" : "#333"), minWidth:140 }}>
-          {learned.has(idx) ? "✅ Aprendido" : "Marcar aprendido"}
-        </button>
-        <button onClick={() => { setFlipped(false); setTimeout(() => setIdx(i => (i + 1) % ANIMALS.length), 150); }} style={circ("#f5af19")}>▶</button>
-      </div>
-      <div style={{ fontSize:14, color:"#999" }}>Tarjeta {idx + 1} de {ANIMALS.length}</div>
-    </div>
-  );
-}
-
-/* =================== MODO QUIZ =================== */
-function QuizMode({ onBack, saveQuiz }) {
-  const T = 15;
-  const [qs, setQs] = useState([]);
-  const [qi, setQi] = useState(0);
-  const [sel, setSel] = useState(null);
-  const [sc, setSc] = useState(0);
-  const [str, setStr] = useState(0);
-  const [bStr, setBStr] = useState(0);
-  const [conf, setConf] = useState(0);
-  const [done, setDone] = useState(false);
-  useEffect(() => { if (done) saveQuiz?.(sc, T, bStr); }, [done]);
-
-  useEffect(() => { gen(); }, []);
-
-  const gen = () => {
-    const questions = shuffle(ANIMALS).slice(0, T).map(animal => {
-      const types = [
-        { q: `¿Qué animal ${animal.clues[Math.floor(Math.random() * 3)].toLowerCase()}?`, cor: animal.name, isName: true },
-        { q: `¿A qué categoría pertenece ${animal.emoji} ${animal.name}?`, cor: animal.category, isName: false },
-        { q: `¿Dónde vive ${animal.emoji} ${animal.name}?`, cor: animal.habitat, isName: false },
-      ];
-      const type = types[Math.floor(Math.random() * types.length)];
-      let opts = [type.cor];
-      const pool = ANIMALS.filter(a => a.name !== animal.name);
-      while (opts.length < 4) {
-        const r = pool[Math.floor(Math.random() * pool.length)];
-        const v = type.isName ? r.name : (type.cor === animal.category ? r.category : r.habitat);
-        if (!opts.includes(v)) opts.push(v);
-      }
-      return { animal, question: type.q, cor: type.cor, opts: shuffle(opts), isName: type.isName };
-    });
-    setQs(questions);
-    setQi(0); setSel(null); setSc(0); setStr(0); setBStr(0); setDone(false);
-  };
-
-  const pick = (o) => {
-    if (sel !== null) return;
-    setSel(o);
-    const ok = o === qs[qi].cor;
-    if (ok) { setSc(s => s + 1); setStr(s => { const n = s + 1; if (n > bStr) setBStr(n); return n; }); setConf(c => c + 1); }
-    else { setStr(0); }
-    setTimeout(() => { if (qi + 1 >= T) setDone(true); else { setQi(i => i + 1); setSel(null); } }, 1200);
-  };
-
-  if (done) {
-    return (
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16, padding:"0 8px" }}>
-        <Confetti active={conf} />
-        <div style={{ fontSize:48 }}>🎉</div>
-        <h2 style={{ fontSize:24, fontWeight:800, color:"#333" }}>¡Quiz terminado!</h2>
-        <Stars s={sc} t={T} />
-        <div style={{ background:"linear-gradient(135deg,#f5af19,#f12711)", borderRadius:20, padding:24, color:"white", textAlign:"center", maxWidth:300, width:"100%" }}>
-          <div style={{ fontSize:42, fontWeight:800 }}>{sc}/{T}</div>
-          <div style={{ fontSize:15, opacity:0.9, marginTop:8 }}>Correctas</div>
-          <div style={{ fontSize:14, opacity:0.8, marginTop:4 }}>🔥 Mejor racha: {bStr}</div>
-        </div>
-        <div style={{ fontSize:18, textAlign:"center" }}>{sc >= 13 ? "🧠 ¡Experto en fauna!" : sc >= 10 ? "💪 ¡Muy bien!" : "📚 ¡Sigue aprendiendo!"}</div>
-        <div style={{ display:"flex", gap:12 }}>
-          <button onClick={gen} style={pill("#f5af19","#fff")}>🔄 Jugar de nuevo</button>
-          <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!qs.length) return null;
-  const q = qs[qi];
-
-  return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:14, padding:"0 8px" }}>
-      <Confetti active={conf} />
-      <div style={{ display:"flex", justifyContent:"space-between", width:"100%", maxWidth:420, alignItems:"center" }}>
-        <button onClick={onBack} style={pill("#e0e0e0","#333")}>← Menú</button>
-        <div aria-live="polite" style={{ display:"flex", gap:12, fontSize:14, fontWeight:600 }}><span>✅ {sc}</span><span>🔥 {str}</span></div>
-      </div>
-      <PBar v={qi + 1} mx={T} />
-      <div style={{ fontSize:13, color:"#999" }}>Pregunta {qi + 1} de {T}</div>
-      <div style={{ background:"linear-gradient(135deg,#6c5ce7,#a29bfe)", borderRadius:20, padding:24, color:"white", textAlign:"center", width:"100%", maxWidth:400 }}>
-        <div style={{ fontSize:36, marginBottom:8 }}>{q.animal.emoji}</div>
-        <div style={{ fontSize:17, fontWeight:700, lineHeight:1.4 }}>{q.question}</div>
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, width:"100%", maxWidth:400 }}>
-        {q.opts.map((o, i) => {
-          const ok = o === q.cor;
-          const isSel = sel === o;
-          let bg = "white", bd = "#ddd", cl = "#333";
-          if (sel !== null) {
-            if (ok) { bg = "#c8e6c9"; bd = "#66BB6A"; cl = "#2e7d32"; }
-            else if (isSel) { bg = "#ffcdd2"; bd = "#ef5350"; cl = "#c62828"; }
-          }
-          return (
-            <button key={i} onClick={() => pick(o)} style={{
-              background:bg, border:`2px solid ${bd}`, borderRadius:16, padding:"14px 10px",
-              fontSize:14, fontWeight:600, color:cl, cursor: sel !== null ? "default" : "pointer",
-              transition:"all 0.3s", transform: isSel ? "scale(1.04)" : "scale(1)",
-              boxShadow: isSel ? "0 4px 15px rgba(0,0,0,0.15)" : "0 2px 8px rgba(0,0,0,0.06)"
-            }}>
-              {sel !== null && ok && "✅ "}{sel !== null && isSel && !ok && "❌ "}{o}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/* =================== MODO DESAFÍO =================== */
-function ChallengeMode({ onBack, saveChallenge }) {
+/* =================== MODO DESAFÍO PERSONALIZADO (con pistas progresivas) =================== */
+function AnimalChallengeMode({ onBack, saveChallenge }) {
   const [st, setSt] = useState("ready");
   const [rounds, setRounds] = useState([]);
   const [ri, setRi] = useState(0);
@@ -737,7 +516,7 @@ function ChallengeMode({ onBack, saveChallenge }) {
         <Confetti active={conf} />
         <div style={{ fontSize:48 }}>⚡</div>
         <h2 style={{ fontSize:24, fontWeight:800, color:"#333" }}>¡Tiempo!</h2>
-        <Stars s={sc} t={Math.max(sc + 50, 200)} />
+        <Stars score={sc} total={Math.max(sc + 50, 200)} />
         <div style={{ background:"linear-gradient(135deg,#f5af19,#f12711)", borderRadius:20, padding:24, color:"white", textAlign:"center", maxWidth:300, width:"100%" }}>
           <div style={{ fontSize:48, fontWeight:800 }}>{sc}</div>
           <div style={{ fontSize:16 }}>puntos en 60s</div>
@@ -827,80 +606,113 @@ function ChallengeMode({ onBack, saveChallenge }) {
   );
 }
 
-/* =================== COMPONENTE PRINCIPAL =================== */
-export default function QueAnimalSoy() {
-  const [screen, setScreen] = useState("menu");
-  const [floats, setFloats] = useState([]);
-  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("que-animal-soy");
-
-  useEffect(() => {
-    if (screen !== "menu") return;
-    const iv = setInterval(() => {
-      setFloats(f => [...f, { id: Date.now(), emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)], x: Math.random() * 90 + 5 }].slice(-8));
-    }, 1800);
-    return () => clearInterval(iv);
-  }, [screen]);
-
-  const screens = { clue: ClueMode, learn: LearnMode, quiz: QuizMode, challenge: ChallengeMode };
-  const Screen = screens[screen];
-
-  if (Screen) {
-    return (
-      <div style={gameCtn}>
-        <Screen onBack={() => setScreen("menu")} saveQuiz={saveQuiz} saveChallenge={saveChallenge} saveLearned={saveLearned} />
-      </div>
-    );
-  }
-
-  const modes = [
-    { key:"clue", icon:"🔍", title:"¿Qué animal soy?", desc:"5 pistas progresivas. ¡Menos pistas = más puntos!", gradient:"linear-gradient(135deg,#f5af19,#f12711)" },
-    { key:"learn", icon:"📚", title:"Aprende", desc:"Tarjetas con animales, hábitats y datos curiosos", gradient:"linear-gradient(135deg,#6c5ce7,#a29bfe)" },
-    { key:"quiz", icon:"🧠", title:"Quiz", desc:"¿Cuánto sabes sobre el reino animal?", gradient:"linear-gradient(135deg,#fd79a8,#e84393)" },
-    { key:"challenge", icon:"⚡", title:"Desafío Relámpago", desc:"60 segundos. ¡Adivina el animal con las pistas!", gradient:"linear-gradient(135deg,#e17055,#d63031)" },
-  ];
-
+/* =================== WIRED LEARN MODE =================== */
+function AnimalLearnMode(props) {
   return (
-    <div style={gameCtn}>
-      <div style={{ position:"relative", overflow:"hidden", minHeight:"100%" }}>
-        {floats.map(f => (
-          <div key={f.id} style={{ position:"absolute", left:`${f.x}%`, top:-30, fontSize:24, animation:"qasFloat 4s ease-in forwards", pointerEvents:"none", zIndex:0 }}>{f.emoji}</div>
-        ))}
-        <style>{`@keyframes qasFloat{0%{transform:translateY(0);opacity:1}100%{transform:translateY(600px);opacity:0}}`}</style>
-        <div style={{ position:"relative", zIndex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:20, padding:"0 8px" }}>
-          <div style={{ textAlign:"center" }}>
-            <div style={{ fontSize:48, marginBottom:4 }}>🐾</div>
-            <h1 style={{ fontSize:28, fontWeight:900, margin:0, background:"linear-gradient(135deg,#f5af19,#f12711)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
-              ¿Qué Animal Soy?
-            </h1>
-            <p style={{ fontSize:15, color:"#777", margin:"4px 0 0" }}>¡Adivina el animal con las pistas! 🔍</p>
+    <LearnMode
+      {...props}
+      data={ANIMALS}
+      frontGradient="linear-gradient(135deg,#f5af19,#f12711)"
+      backGradient="linear-gradient(135deg,#6c5ce7,#a29bfe)"
+      progressGradient="linear-gradient(90deg,#f5af19,#f12711)"
+      navColor="#f5af19"
+      renderFront={(a) => (
+        <>
+          <div style={{ fontSize:64, marginBottom:8 }}>{a.emoji}</div>
+          <div style={{ fontSize:28, fontWeight:800, textAlign:"center" }}>{a.name}</div>
+          <div style={{ fontSize:12, marginTop:12, background:"rgba(255,255,255,0.2)", padding:"4px 14px", borderRadius:20 }}>
+            {a.category} · {a.habitat}
           </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:14, width:"100%", maxWidth:380 }}>
-            {modes.map(m => (
-              <button key={m.key} onClick={() => setScreen(m.key)} style={{
-                background:m.gradient, border:"none", borderRadius:20, padding:"20px 22px",
-                color:"white", textAlign:"left", cursor:"pointer", transition:"transform 0.2s",
-                boxShadow:"0 6px 25px rgba(0,0,0,0.15)", display:"flex", alignItems:"center", gap:16
-              }}
-              onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
-              onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-                <span style={{ fontSize:36 }}>{m.icon}</span>
-                <div>
-                  <div style={{ fontSize:18, fontWeight:800 }}>{m.title}</div>
-                  <div style={{ fontSize:13, opacity:0.9 }}>{m.desc}</div>
-                </div>
-              </button>
+        </>
+      )}
+      renderBack={(a) => (
+        <>
+          <div style={{ fontSize:14, opacity:0.8, marginBottom:8 }}>🔍 Pistas de {a.emoji} {a.name}</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:6, width:"100%" }}>
+            {a.clues.map((clue, i) => (
+              <div key={i} style={{
+                background:"rgba(255,255,255,0.15)", borderRadius:10, padding:"6px 10px",
+                fontSize:12, lineHeight:1.4
+              }}>
+                <span style={{ opacity:0.6 }}>#{i + 1}</span> {clue}
+              </div>
             ))}
           </div>
-          <div style={{ fontSize:12, color:"#bbb", textAlign:"center", marginTop:8 }}>20 animales · 5 pistas cada uno · Datos curiosos · ¡A jugar! 🎮</div>
-          <a href="/" style={{ fontSize:13, color:"#aaa", textDecoration:"none", textAlign:"center" }}>← Volver al menú principal</a>
-        </div>
-      </div>
-    </div>
+          <div style={{ fontSize:11, marginTop:10, background:"rgba(255,255,255,0.2)", padding:"6px 12px", borderRadius:12, textAlign:"center", lineHeight:1.4 }}>
+            💡 {a.fun}
+          </div>
+        </>
+      )}
+    />
   );
 }
 
-const gameCtn = {
-  fontFamily:"'Segoe UI',system-ui,-apple-system,sans-serif",
-  maxWidth:640, margin:"0 auto", padding:"24px 12px", minHeight:"100vh",
-  background:"linear-gradient(180deg,#fff8f0 0%,#fff5ee 50%,#faf0ff 100%)"
-};
+/* =================== WIRED QUIZ MODE =================== */
+function AnimalQuizMode(props) {
+  return (
+    <QuizMode
+      {...props}
+      data={ANIMALS}
+      questionTypes={QUESTION_TYPES}
+      count={15}
+      questionGradient="linear-gradient(135deg,#6c5ce7,#a29bfe)"
+      progressGradient="linear-gradient(90deg,#f5af19,#f12711)"
+      renderQuestion={(q, { selected, pick }) => (
+        <>
+          <div style={{ background:"linear-gradient(135deg,#6c5ce7,#a29bfe)", borderRadius:20, padding:24, color:"white", textAlign:"center", width:"100%", maxWidth:400 }}>
+            <div style={{ fontSize:36, marginBottom:8 }}>{q.item.emoji}</div>
+            <div style={{ fontSize:17, fontWeight:700, lineHeight:1.4 }}>{q.prompt}</div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, width:"100%", maxWidth:400 }}>
+            {q.options.map((o, i) => {
+              const ok = o === q.correct;
+              const isSel = selected === o;
+              let bg = "white", bd = "#ddd", cl = "#333";
+              if (selected !== null) {
+                if (ok) { bg = "#c8e6c9"; bd = "#66BB6A"; cl = "#2e7d32"; }
+                else if (isSel) { bg = "#ffcdd2"; bd = "#ef5350"; cl = "#c62828"; }
+              }
+              return (
+                <button key={i} onClick={() => pick(o)} style={{
+                  background:bg, border:`2px solid ${bd}`, borderRadius:16, padding:"14px 10px",
+                  fontSize:14, fontWeight:600, color:cl, cursor: selected !== null ? "default" : "pointer",
+                  transition:"all 0.3s", transform: isSel ? "scale(1.04)" : "scale(1)",
+                  boxShadow: isSel ? "0 4px 15px rgba(0,0,0,0.15)" : "0 2px 8px rgba(0,0,0,0.06)"
+                }}>
+                  {selected !== null && ok && "✅ "}{selected !== null && isSel && !ok && "❌ "}{o}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    />
+  );
+}
+
+/* =================== MAIN COMPONENT =================== */
+export default function QueAnimalSoy() {
+  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("que-animal-soy");
+
+  return (
+    <GameShell
+      config={{
+        id: "que-animal-soy",
+        title: "¿Qué Animal Soy?",
+        icon: "🐾",
+        gradient: "linear-gradient(180deg,#fff8f0 0%,#fff5ee 50%,#faf0ff 100%)",
+        titleGradient: "linear-gradient(135deg,#f5af19,#f12711)",
+        subtitle: "¡Adivina el animal con las pistas! 🔍",
+        footer: "20 animales · 5 pistas cada uno · Datos curiosos · ¡A jugar! 🎮",
+        emojis: EMOJIS,
+        modes: [
+          { key:"clue", icon:"🔍", title:"¿Qué animal soy?", desc:"5 pistas progresivas. ¡Menos pistas = más puntos!", gradient:"linear-gradient(135deg,#f5af19,#f12711)", component: ClueMode },
+          { key:"learn", icon:"📚", title:"Aprende", desc:"Tarjetas con animales, hábitats y datos curiosos", gradient:"linear-gradient(135deg,#6c5ce7,#a29bfe)", component: AnimalLearnMode },
+          { key:"quiz", icon:"🧠", title:"Quiz", desc:"¿Cuánto sabes sobre el reino animal?", gradient:"linear-gradient(135deg,#fd79a8,#e84393)", component: AnimalQuizMode },
+          { key:"challenge", icon:"⚡", title:"Desafío Relámpago", desc:"60 segundos. ¡Adivina el animal con las pistas!", gradient:"linear-gradient(135deg,#e17055,#d63031)", component: AnimalChallengeMode },
+        ],
+      }}
+      progressHooks={{ saveQuiz, saveChallenge, saveLearned }}
+    />
+  );
+}

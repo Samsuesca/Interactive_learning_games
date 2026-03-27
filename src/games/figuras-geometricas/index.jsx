@@ -1,5 +1,8 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState } from "react";
 import useGameProgress from "../../hooks/useGameProgress";
+import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
+import { OptionButton } from "../../components/game";
+import { pill } from "../../components/game/utils";
 
 /* ───────── DATOS DEL JUEGO ───────── */
 
@@ -234,43 +237,6 @@ const SHAPES = [
 
 const SHAPES_2D = SHAPES.filter((s) => s.type === "2D");
 const SHAPES_3D = SHAPES.filter((s) => s.type === "3D");
-const EMOJIS = ["🔺", "⬡", "🎲", "⭕", "🔷", "📐", "🌍", "🛑"];
-
-/* ───────── UTILIDADES ───────── */
-
-const shuffle = (a) => {
-  const b = [...a];
-  for (let i = b.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [b[i], b[j]] = [b[j], b[i]];
-  }
-  return b;
-};
-
-const pill = (bg, c = "#fff") => ({
-  display: "inline-block",
-  background: bg,
-  color: c,
-  borderRadius: 30,
-  padding: "10px 22px",
-  fontWeight: 700,
-  fontSize: 15,
-  border: "none",
-  cursor: "pointer",
-  transition: "all .2s",
-});
-
-const circ = (bg) => ({
-  ...pill(bg),
-  width: 44,
-  height: 44,
-  padding: 0,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "50%",
-  fontSize: 20,
-});
 
 /* ───────── DIBUJO SVG DE FIGURAS ───────── */
 
@@ -491,111 +457,58 @@ function ShapeSVG({ shapeId, size = 120, color }) {
   );
 }
 
-/* ───────── COMPONENTES COMPARTIDOS ───────── */
+/* ───────── QUESTION TYPES ───────── */
 
-function Confetti({ active }) {
-  const [ps, setPs] = useState([]);
-  useEffect(() => {
-    if (!active) { setPs([]); return; }
-    setPs(
-      Array.from({ length: 25 }, (_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        delay: Math.random() * 0.5,
-        color: ["#FFD700", "#FF6B6B", "#4ECDC4", "#45B7D1", "#F9A825", "#AB47BC"][i % 6],
-        size: Math.random() * 8 + 4,
-      }))
-    );
-    const t = setTimeout(() => setPs([]), 1500);
-    return () => clearTimeout(t);
-  }, [active]);
-  if (!ps.length) return null;
-  return (
-    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 999 }}>
-      <style>{`@keyframes gFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}`}</style>
-      {ps.map((p) => (
-        <div
-          key={p.id}
-          style={{
-            position: "absolute",
-            left: `${p.x}%`,
-            top: -10,
-            width: p.size,
-            height: p.size,
-            background: p.color,
-            borderRadius: p.id % 3 === 0 ? "50%" : "2px",
-            animation: `gFall 1.5s ${p.delay}s ease-out forwards`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
+const QUESTION_TYPES = [
+  {
+    prompt: (item) => `¿Cuál es la fórmula del ${item.type === "2D" ? "área" : "volumen"} del ${item.name}?`,
+    answer: (item) => item.formula,
+  },
+  {
+    prompt: (item) => `¿Qué figura es esta? (${item.type})`,
+    answer: (item) => item.name,
+  },
+  {
+    prompt: (item) => `¿A qué categoría pertenece el ${item.name}?`,
+    answer: (item) => item.category,
+  },
+  {
+    prompt: (item) => `¿Cuál es la fórmula del ${item.type === "2D" ? "perímetro" : "superficie"} del ${item.name}?`,
+    answer: (item) => item.perimeter,
+  },
+];
 
-function Stars({ score, total }) {
-  const n = total > 0 ? (score / total >= 0.9 ? 3 : score / total >= 0.6 ? 2 : score / total > 0 ? 1 : 0) : 0;
-  return (
-    <div style={{ display: "flex", gap: 4, justifyContent: "center", fontSize: 32 }}>
-      {[0, 1, 2].map((i) => (
-        <span key={i} style={{ opacity: i < n ? 1 : 0.25 }}>
-          {i < n ? "⭐" : "☆"}
-        </span>
-      ))}
-    </div>
-  );
-}
+/* ───────── CUSTOM QUESTION RENDERER ───────── */
 
-function PBar({ value, max }) {
+function renderShapeQuestion(q, { selected, pick }) {
   return (
-    <div style={{ width: "100%", height: 10, background: "#e0e0e0", borderRadius: 5, overflow: "hidden" }}>
-      <div
-        style={{
-          width: `${max > 0 ? (value / max) * 100 : 0}%`,
-          height: "100%",
-          background: "linear-gradient(90deg, #667eea, #764ba2)",
-          borderRadius: 5,
-          transition: "width 0.5s",
-        }}
-      />
-    </div>
-  );
-}
-
-function OptionButton({ text, sel, cor, onClick }) {
-  const isC = text === cor;
-  const isS = sel === text;
-  let bg = "white", border = "#ddd", color = "#333";
-  if (sel !== null) {
-    if (isC) { bg = "#c8e6c9"; border = "#66BB6A"; color = "#2e7d32"; }
-    else if (isS) { bg = "#ffcdd2"; border = "#ef5350"; color = "#c62828"; }
-  }
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        background: bg,
-        border: `2px solid ${border}`,
-        borderRadius: 16,
-        padding: "14px 10px",
-        fontSize: 15,
-        fontWeight: 600,
-        color,
-        cursor: sel !== null ? "default" : "pointer",
-        transition: "all 0.3s",
-        transform: isS ? "scale(1.04)" : "scale(1)",
-        boxShadow: isS ? "0 4px 15px rgba(0,0,0,0.15)" : "0 2px 8px rgba(0,0,0,0.06)",
+    <>
+      <div style={{
+        background: "white",
+        borderRadius: 20,
+        padding: 20,
+        boxShadow: "0 4px 16px rgba(0,0,0,0.07)",
+        textAlign: "center",
         width: "100%",
-        textAlign: "left",
-      }}
-    >
-      {sel !== null && isC && "✅ "}
-      {sel !== null && isS && !isC && "❌ "}
-      {text}
-    </button>
+        maxWidth: 400,
+      }}>
+        {q.item && (
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+            <ShapeSVG shapeId={q.item.id} size={100} color={q.item.color} />
+          </div>
+        )}
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#333", lineHeight: 1.4 }}>{q.prompt}</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 400 }}>
+        {q.options.map((o) => (
+          <OptionButton key={o} text={o} selected={selected} correct={q.correct} onClick={() => pick(o)} />
+        ))}
+      </div>
+    </>
   );
 }
 
-/* ───────── MODO EXPLORAR (GALERÍA) ───────── */
+/* ───────── MODO EXPLORAR (GALERÍA) - game-specific ───────── */
 
 function ExploreMode({ onBack }) {
   const [filter, setFilter] = useState("all");
@@ -736,653 +649,116 @@ function ExploreMode({ onBack }) {
   );
 }
 
-/* ───────── MODO APRENDER (FLASHCARDS) ───────── */
+/* ───────── WIRED LEARN MODE ───────── */
 
-function LearnMode({ onBack, saveLearned }) {
-  const [idx, setIdx] = useState(0);
-  const [flipped, setFlipped] = useState(false);
-  const [learned, setLearned] = useState(new Set());
-  useEffect(() => { if (learned.size > 0) saveLearned?.(learned.size); }, [learned.size]);
-
-  const shape = SHAPES[idx];
-
+function FGLearnMode(props) {
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <button onClick={onBack} style={pill("rgba(255,255,255,0.85)", "#333")}>◀ Menú</button>
-        <span style={{ fontSize: 13, color: "#888", fontWeight: 600 }}>
-          {idx + 1} / {SHAPES.length} · {learned.size} aprendidas
-        </span>
-      </div>
-
-      <PBar value={idx + 1} max={SHAPES.length} />
-
-      <div
-        onClick={() => setFlipped(!flipped)}
-        style={{
-          perspective: 800,
-          cursor: "pointer",
-          margin: "20px 0",
-          height: 340,
-        }}
-      >
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            height: "100%",
-            transformStyle: "preserve-3d",
-            transition: "transform 0.6s",
-            transform: flipped ? "rotateY(180deg)" : "rotateY(0)",
-          }}
-        >
-          {/* FRONT */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backfaceVisibility: "hidden",
-              background: shape.gradient,
-              borderRadius: 24,
-              padding: 24,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
-            }}
-          >
-            <div style={{ background: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 12, marginBottom: 16 }}>
-              <ShapeSVG shapeId={shape.id} size={120} color="rgba(255,255,255,0.9)" />
-            </div>
-            <div style={{ fontSize: 28, fontWeight: 800 }}>{shape.name}</div>
-            <div style={{ fontSize: 14, opacity: 0.9, marginTop: 4 }}>{shape.category} · {shape.type}</div>
-            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 12 }}>Toca para ver fórmulas →</div>
+    <LearnMode
+      {...props}
+      data={SHAPES}
+      frontGradient="linear-gradient(135deg,#667eea,#764ba2)"
+      backGradient="linear-gradient(135deg,#f5f7fa,#c3cfe2)"
+      progressGradient="linear-gradient(90deg,#667eea,#764ba2)"
+      navColor="#667eea"
+      renderFront={(shape) => (
+        <>
+          <div style={{ background: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 12, marginBottom: 16 }}>
+            <ShapeSVG shapeId={shape.id} size={120} color="rgba(255,255,255,0.9)" />
           </div>
-
-          {/* BACK */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backfaceVisibility: "hidden",
-              transform: "rotateY(180deg)",
-              background: "linear-gradient(135deg, #f5f7fa, #c3cfe2)",
-              borderRadius: 24,
-              padding: 24,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#333",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
-            }}
-          >
-            <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>{shape.name}</div>
-
-            <div style={{
-              background: "white", borderRadius: 16, padding: 14,
-              width: "100%", marginBottom: 10, textAlign: "center",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-            }}>
-              <div style={{ fontSize: 11, color: "#888", fontWeight: 600, textTransform: "uppercase" }}>
-                {shape.type === "2D" ? "Área" : "Volumen"}
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#667eea", marginTop: 4 }}>
-                {shape.formula}
-              </div>
+          <div style={{ fontSize: 28, fontWeight: 800 }}>{shape.name}</div>
+          <div style={{ fontSize: 14, opacity: 0.9, marginTop: 4 }}>{shape.category} · {shape.type}</div>
+        </>
+      )}
+      renderBack={(shape) => (
+        <div style={{ color: "#333", textAlign: "center", width: "100%" }}>
+          <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>{shape.name}</div>
+          <div style={{
+            background: "white", borderRadius: 16, padding: 14,
+            width: "100%", marginBottom: 10, textAlign: "center",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+          }}>
+            <div style={{ fontSize: 11, color: "#888", fontWeight: 600, textTransform: "uppercase" }}>
+              {shape.type === "2D" ? "Área" : "Volumen"}
             </div>
-
-            <div style={{
-              background: "white", borderRadius: 16, padding: 14,
-              width: "100%", marginBottom: 10, textAlign: "center",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-            }}>
-              <div style={{ fontSize: 11, color: "#888", fontWeight: 600, textTransform: "uppercase" }}>
-                {shape.type === "2D" ? "Perímetro" : "Superficie"}
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#66BB6A", marginTop: 4 }}>
-                {shape.perimeter}
-              </div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#667eea", marginTop: 4 }}>
+              {shape.formula}
             </div>
-
-            <div style={{ fontSize: 13, color: "#666", lineHeight: 1.5, textAlign: "center", marginTop: 4 }}>
-              {shape.description}
+          </div>
+          <div style={{
+            background: "white", borderRadius: 16, padding: 14,
+            width: "100%", marginBottom: 10, textAlign: "center",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+          }}>
+            <div style={{ fontSize: 11, color: "#888", fontWeight: 600, textTransform: "uppercase" }}>
+              {shape.type === "2D" ? "Perímetro" : "Superficie"}
             </div>
-            <div style={{ fontSize: 12, opacity: 0.6, marginTop: 8 }}>← Toca para ver la figura</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#66BB6A", marginTop: 4 }}>
+              {shape.perimeter}
+            </div>
+          </div>
+          <div style={{ fontSize: 13, color: "#666", lineHeight: 1.5, textAlign: "center", marginTop: 4 }}>
+            {shape.description}
           </div>
         </div>
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16 }}>
-        <button
-          onClick={() => { setIdx(Math.max(0, idx - 1)); setFlipped(false); }}
-          disabled={idx === 0}
-          style={{ ...circ(idx === 0 ? "#ccc" : "#667eea"), opacity: idx === 0 ? 0.4 : 1 }}
-        >
-          ◀
-        </button>
-
-        <button
-          onClick={() => {
-            setLearned((prev) => {
-              const s = new Set(prev);
-              if (s.has(shape.id)) s.delete(shape.id); else s.add(shape.id);
-              return s;
-            });
-          }}
-          style={pill(learned.has(shape.id) ? "linear-gradient(135deg,#66BB6A,#43A047)" : "rgba(255,255,255,0.85)",
-            learned.has(shape.id) ? "#fff" : "#555")}
-        >
-          {learned.has(shape.id) ? "✅ Aprendida" : "Marcar aprendida"}
-        </button>
-
-        <button
-          onClick={() => { setIdx(Math.min(SHAPES.length - 1, idx + 1)); setFlipped(false); }}
-          disabled={idx === SHAPES.length - 1}
-          style={{ ...circ(idx === SHAPES.length - 1 ? "#ccc" : "#667eea"), opacity: idx === SHAPES.length - 1 ? 0.4 : 1 }}
-        >
-          ▶
-        </button>
-      </div>
-    </div>
+      )}
+    />
   );
 }
 
-/* ───────── GENERADOR DE PREGUNTAS ───────── */
+/* ───────── WIRED QUIZ MODE ───────── */
 
-function makeQuestions(count) {
-  const types = [
-    // Tipo 1: ¿Cuál es la fórmula de área/volumen de X?
-    (item) => {
-      const label = item.type === "2D" ? "área" : "volumen";
-      const cor = item.formula;
-      let opts = [cor];
-      const pool = SHAPES.filter((s) => s.id !== item.id && s.type === item.type);
-      while (opts.length < 4 && pool.length > 0) {
-        const r = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-        if (!opts.includes(r.formula)) opts.push(r.formula);
-      }
-      const poolAll = SHAPES.filter((s) => s.id !== item.id);
-      while (opts.length < 4) {
-        const r = poolAll[Math.floor(Math.random() * poolAll.length)];
-        if (!opts.includes(r.formula)) opts.push(r.formula);
-      }
-      return { question: `¿Cuál es la fórmula del ${label} del ${item.name}?`, cor, opts: shuffle(opts), showShape: true, item };
-    },
-    // Tipo 2: ¿Qué figura es esta? (mostrar SVG)
-    (item) => {
-      const cor = item.name;
-      let opts = [cor];
-      const pool = SHAPES.filter((s) => s.id !== item.id);
-      while (opts.length < 4) {
-        const r = pool[Math.floor(Math.random() * pool.length)];
-        if (!opts.includes(r.name)) opts.push(r.name);
-      }
-      return { question: "¿Qué figura es esta?", cor, opts: shuffle(opts), showShape: true, item };
-    },
-    // Tipo 3: ¿Cuántos lados/caras tiene X?
-    (item) => {
-      if (item.sides === 0) return null;
-      const label = item.type === "2D" ? "lados" : "caras";
-      const cor = `${item.sides} ${label}`;
-      let opts = [cor];
-      const candidates = item.type === "2D" ? [3, 4, 5, 6, 8] : [2, 3, 4, 5, 6];
-      for (const c of shuffle(candidates)) {
-        const v = `${c} ${label}`;
-        if (!opts.includes(v) && opts.length < 4) opts.push(v);
-      }
-      return { question: `¿Cuántos ${label} tiene el ${item.name}?`, cor, opts: shuffle(opts), showShape: false, item };
-    },
-    // Tipo 4: ¿Esta figura es 2D o 3D?
-    (item) => {
-      const cor = item.type;
-      return {
-        question: `¿El ${item.name} es una figura 2D o 3D?`,
-        cor,
-        opts: shuffle(["2D", "3D", "Ambas", "Ninguna"]),
-        showShape: true,
-        item,
-      };
-    },
-    // Tipo 5: ¿A qué categoría pertenece X?
-    (item) => {
-      const cor = item.category;
-      const allCats = [...new Set(SHAPES.map((s) => s.category))];
-      let opts = [cor];
-      for (const c of shuffle(allCats)) {
-        if (!opts.includes(c) && opts.length < 4) opts.push(c);
-      }
-      while (opts.length < 4) opts.push("Ninguna de las anteriores");
-      return { question: `¿A qué categoría pertenece el ${item.name}?`, cor, opts: shuffle(opts), showShape: true, item };
-    },
-  ];
-
-  const questions = [];
-  const pool = shuffle([...SHAPES]);
-
-  for (let i = 0; i < count; i++) {
-    const item = pool[i % pool.length];
-    const typeIdx = Math.floor(Math.random() * types.length);
-    const q = types[typeIdx](item);
-    if (q) questions.push(q);
-    else {
-      const fallback = types[1](item);
-      questions.push(fallback);
-    }
-  }
-
-  return shuffle(questions).slice(0, count);
-}
-
-/* ───────── MODO QUIZ ───────── */
-
-const TOTAL_Q = 15;
-
-function QuizMode({ onBack, saveQuiz }) {
-  const [qs] = useState(() => makeQuestions(TOTAL_Q));
-  const [qi, setQi] = useState(0);
-  const [sel, setSel] = useState(null);
-  const [sc, setSc] = useState(0);
-  const [str, setStr] = useState(0);
-  const [bStr, setBStr] = useState(0);
-  const [conf, setConf] = useState(0);
-  const [done, setDone] = useState(false);
-  useEffect(() => { if (done) saveQuiz?.(sc, TOTAL_Q, bStr); }, [done]);
-
-  const pick = (o) => {
-    if (sel !== null) return;
-    setSel(o);
-    const isC = o === qs[qi].cor;
-    if (isC) {
-      setSc((s) => s + 1);
-      setStr((s) => {
-        const n = s + 1;
-        setBStr((b) => Math.max(b, n));
-        return n;
-      });
-      setConf((c) => c + 1);
-    } else {
-      setStr(0);
-    }
-    setTimeout(() => {
-      if (qi + 1 >= TOTAL_Q) setDone(true);
-      else { setQi((i) => i + 1); setSel(null); }
-    }, 1200);
-  };
-
-  if (done) {
-    const pct = sc / TOTAL_Q;
-    const msg = pct >= 0.9 ? "¡Experta en geometría!" : pct >= 0.6 ? "¡Muy bien!" : "¡Sigue practicando!";
-    return (
-      <div style={{ textAlign: "center" }}>
-        <Confetti active={conf} />
-        <div style={{ fontSize: 64, marginBottom: 8 }}>🎉</div>
-        <h2 style={{ fontSize: 22, fontWeight: 800, color: "#333" }}>¡Quiz terminado!</h2>
-        <Stars score={sc} total={TOTAL_Q} />
-        <div style={{
-          background: "linear-gradient(135deg,#667eea,#764ba2)",
-          borderRadius: 20, padding: 20, margin: "16px 0",
-          color: "white", textAlign: "center",
-        }}>
-          <div style={{ fontSize: 36, fontWeight: 800 }}>{sc}/{TOTAL_Q}</div>
-          <div style={{ fontSize: 14, opacity: 0.9 }}>respuestas correctas</div>
-          <div style={{ fontSize: 13, opacity: 0.8, marginTop: 4 }}>🔥 Mejor racha: {bStr}</div>
-        </div>
-        <div style={{ fontSize: 16, color: "#555", marginBottom: 16 }}>{msg}</div>
-        <button onClick={onBack} style={pill("linear-gradient(135deg,#667eea,#764ba2)")}>Volver al menú</button>
-      </div>
-    );
-  }
-
-  const q = qs[qi];
-
+function FGQuizMode(props) {
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <button onClick={onBack} style={pill("rgba(255,255,255,0.85)", "#333")}>◀ Menú</button>
-        <span aria-live="polite" style={{ fontSize: 13, color: "#888", fontWeight: 600 }}>
-          {qi + 1}/{TOTAL_Q} · ✅ {sc} {str > 1 && `· 🔥${str}`}
-        </span>
-      </div>
-      <PBar value={qi + 1} max={TOTAL_Q} />
-      <Confetti active={conf} />
-
-      <div style={{
-        background: "white",
-        borderRadius: 20,
-        padding: 20,
-        margin: "16px 0",
-        boxShadow: "0 4px 16px rgba(0,0,0,0.07)",
-        textAlign: "center",
-      }}>
-        {q.showShape && (
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-            <ShapeSVG shapeId={q.item.id} size={100} color={q.item.color} />
-          </div>
-        )}
-        <div style={{ fontSize: 16, fontWeight: 700, color: "#333", lineHeight: 1.4 }}>{q.question}</div>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {q.opts.map((o) => (
-          <OptionButton key={o} text={o} sel={sel} cor={q.cor} onClick={() => pick(o)} />
-        ))}
-      </div>
-    </div>
+    <QuizMode
+      {...props}
+      data={SHAPES}
+      questionTypes={QUESTION_TYPES}
+      count={15}
+      questionGradient="linear-gradient(135deg,#667eea,#764ba2)"
+      progressGradient="linear-gradient(90deg,#667eea,#764ba2)"
+      renderQuestion={renderShapeQuestion}
+    />
   );
 }
 
-/* ───────── MODO DESAFÍO ───────── */
+/* ───────── WIRED CHALLENGE MODE ───────── */
 
-function ChallengeMode({ onBack, saveChallenge }) {
-  const [qs] = useState(() => makeQuestions(96));
-  const [qi, setQi] = useState(0);
-  const [sel, setSel] = useState(null);
-  const [sc, setSc] = useState(0);
-  const [str, setStr] = useState(0);
-  const [tm, setTm] = useState(60);
-  const [st, setSt] = useState("ready");
-  const [conf, setConf] = useState(0);
-  const ref = useRef(null);
-  useEffect(() => { if (st === "done") saveChallenge?.(sc); }, [st]);
-
-  useEffect(() => {
-    if (st !== "playing") return;
-    ref.current = setInterval(() => {
-      setTm((t) => {
-        if (t <= 1) {
-          clearInterval(ref.current);
-          setSt("done");
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
-    return () => clearInterval(ref.current);
-  }, [st]);
-
-  const start = () => {
-    setSt("playing");
-    setTm(60);
-    setSc(0);
-    setStr(0);
-    setQi(0);
-    setSel(null);
-  };
-
-  const pick = (o) => {
-    if (sel !== null || st !== "playing") return;
-    setSel(o);
-    const isC = o === qs[qi].cor;
-    if (isC) {
-      setSc((s) => s + 1);
-      setStr((s) => s + 1);
-      setConf((c) => c + 1);
-    } else {
-      setStr(0);
-    }
-    setTimeout(() => {
-      if (qi + 1 >= qs.length) { clearInterval(ref.current); setSt("done"); }
-      else { setQi((i) => i + 1); setSel(null); }
-    }, 600);
-  };
-
-  const tc = tm <= 10 ? "#ef5350" : tm <= 30 ? "#FFA726" : "#66BB6A";
-
-  if (st === "ready") {
-    return (
-      <div style={{ textAlign: "center" }}>
-        <button onClick={onBack} style={{ ...pill("rgba(255,255,255,0.85)", "#333"), marginBottom: 20, alignSelf: "flex-start" }}>◀ Menú</button>
-        <div style={{ fontSize: 64, marginBottom: 12 }}>⚡</div>
-        <h2 style={{ fontSize: 24, fontWeight: 800, color: "#333" }}>Desafío Relámpago</h2>
-        <p style={{ fontSize: 14, color: "#666", margin: "8px 0 24px", lineHeight: 1.5 }}>
-          Responde tantas preguntas como puedas en 60 segundos sobre figuras geométricas, fórmulas y propiedades.
-        </p>
-        <div style={{
-          background: "linear-gradient(135deg,#667eea22,#764ba222)",
-          borderRadius: 16, padding: 16, marginBottom: 24, fontSize: 14, color: "#555",
-        }}>
-          ⏱️ 60 segundos · 📝 Preguntas variadas · 🔥 Acumula rachas
-        </div>
-        <style>{`@keyframes gPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}`}</style>
-        <button
-          onClick={start}
-          style={{
-            ...pill("linear-gradient(135deg,#667eea,#764ba2)"),
-            fontSize: 18,
-            padding: "14px 40px",
-            animation: "gPulse 1.5s infinite",
-          }}
-        >
-          ¡Empezar! 🚀
-        </button>
-      </div>
-    );
-  }
-
-  if (st === "done") {
-    const msg = sc >= 15 ? "¡Increíble!" : sc >= 10 ? "¡Muy rápida!" : sc >= 5 ? "¡Bien!" : "¡Practica más!";
-    return (
-      <div style={{ textAlign: "center" }}>
-        <Confetti active={conf} />
-        <div style={{ fontSize: 64, marginBottom: 8 }}>🏆</div>
-        <h2 style={{ fontSize: 22, fontWeight: 800, color: "#333" }}>¡Tiempo!</h2>
-        <Stars score={sc} total={Math.max(sc, 15)} />
-        <div style={{
-          background: "linear-gradient(135deg,#667eea,#764ba2)",
-          borderRadius: 20, padding: 20, margin: "16px 0", color: "white",
-        }}>
-          <div style={{ fontSize: 36, fontWeight: 800 }}>{sc}</div>
-          <div style={{ fontSize: 14, opacity: 0.9 }}>respuestas correctas en 60s</div>
-        </div>
-        <div style={{ fontSize: 16, color: "#555", marginBottom: 16 }}>{msg}</div>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-          <button onClick={start} style={pill("linear-gradient(135deg,#667eea,#764ba2)")}>Reintentar ⚡</button>
-          <button onClick={onBack} style={pill("rgba(255,255,255,0.85)", "#333")}>Menú</button>
-        </div>
-      </div>
-    );
-  }
-
-  const q = qs[qi];
-
+function FGChallengeMode(props) {
   return (
-    <div>
-      <Confetti active={conf} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div aria-live="assertive" aria-atomic="true" style={{
-          fontSize: 28, fontWeight: 800, color: tc,
-          animation: tm <= 10 ? "gPulse 0.5s infinite" : "none",
-        }}>
-          ⏱️ {tm}s
-        </div>
-        <span aria-live="polite" style={{ fontSize: 13, color: "#888", fontWeight: 600 }}>
-          ✅ {sc} {str > 1 && `· 🔥${str}`}
-        </span>
-      </div>
-
-      <div style={{
-        width: "100%", height: 6, background: "#e0e0e0", borderRadius: 3, overflow: "hidden", marginBottom: 14,
-      }}>
-        <div style={{
-          width: `${(tm / 60) * 100}%`, height: "100%", background: tc,
-          borderRadius: 3, transition: "width 1s linear, background 0.5s",
-        }} />
-      </div>
-
-      <div style={{
-        background: "white", borderRadius: 20, padding: 18, marginBottom: 12,
-        boxShadow: "0 4px 16px rgba(0,0,0,0.07)", textAlign: "center",
-      }}>
-        {q.showShape && (
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
-            <ShapeSVG shapeId={q.item.id} size={80} color={q.item.color} />
-          </div>
-        )}
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#333" }}>{q.question}</div>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {q.opts.map((o) => (
-          <OptionButton key={o} text={o} sel={sel} cor={q.cor} onClick={() => pick(o)} />
-        ))}
-      </div>
-    </div>
+    <ChallengeMode
+      {...props}
+      data={SHAPES}
+      questionTypes={QUESTION_TYPES}
+      questionGradient="linear-gradient(135deg,#667eea,#764ba2)"
+      renderQuestion={renderShapeQuestion}
+    />
   );
 }
 
-/* ───────── COMPONENTE PRINCIPAL ───────── */
+/* ───────── MAIN COMPONENT ───────── */
 
 export default function FigurasGeometricas() {
-  const [screen, setScreen] = useState("menu");
-  const [floats, setFloats] = useState([]);
   const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("figuras-geometricas");
 
-  useEffect(() => {
-    if (screen !== "menu") return;
-    const iv = setInterval(() => {
-      setFloats((f) =>
-        [
-          ...f,
-          {
-            id: Date.now(),
-            emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
-            x: Math.random() * 80 + 10,
-          },
-        ].slice(-8)
-      );
-    }, 1800);
-    return () => clearInterval(iv);
-  }, [screen]);
-
-  const screens = {
-    explore: ExploreMode,
-    learn: LearnMode,
-    quiz: QuizMode,
-    challenge: ChallengeMode,
-  };
-
-  const Screen = screens[screen];
-
-  if (Screen) {
-    return (
-      <div style={gameCtn}>
-        <Screen onBack={() => setScreen("menu")} saveQuiz={saveQuiz} saveChallenge={saveChallenge} saveLearned={saveLearned} />
-      </div>
-    );
-  }
-
-  const modes = [
-    {
-      key: "explore",
-      icon: "🔍",
-      title: "Explorar Figuras",
-      desc: "Galería visual de figuras 2D y 3D con propiedades y fórmulas",
-      gradient: "linear-gradient(135deg, #667eea, #764ba2)",
-    },
-    {
-      key: "learn",
-      icon: "📚",
-      title: "Aprende",
-      desc: "Flashcards con figuras, fórmulas y datos curiosos",
-      gradient: "linear-gradient(135deg, #f093fb, #f5576c)",
-    },
-    {
-      key: "quiz",
-      icon: "🧠",
-      title: "Quiz",
-      desc: "15 preguntas sobre figuras, fórmulas y propiedades",
-      gradient: "linear-gradient(135deg, #4facfe, #00f2fe)",
-    },
-    {
-      key: "challenge",
-      icon: "⚡",
-      title: "Desafío Relámpago",
-      desc: "¡60 segundos para demostrar cuánto sabes!",
-      gradient: "linear-gradient(135deg, #F9A825, #f12711)",
-    },
-  ];
-
   return (
-    <div style={gameCtn}>
-      {floats.map((f) => (
-        <div
-          key={f.id}
-          style={{
-            position: "fixed",
-            left: `${f.x}%`,
-            bottom: -40,
-            fontSize: 28,
-            opacity: 0.15,
-            pointerEvents: "none",
-            animation: "gFloat 4s ease-out forwards",
-          }}
-        >
-          {f.emoji}
-        </div>
-      ))}
-      <style>{`@keyframes gFloat{0%{transform:translateY(0);opacity:0.15}100%{transform:translateY(-600px);opacity:0}}`}</style>
-
-      <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <div style={{ fontSize: 56, marginBottom: 4 }}>📐</div>
-        <h1 style={{
-          fontSize: 26, fontWeight: 900, margin: 0,
-          background: "linear-gradient(135deg, #667eea, #764ba2)",
-          WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-        }}>
-          Figuras Geométricas
-        </h1>
-        <p style={{ fontSize: 14, color: "#888", margin: "4px 0 0" }}>
-          Aprende figuras 2D, polígonos y volúmenes 3D
-        </p>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}>
-        {modes.map((m) => (
-          <button
-            key={m.key}
-            onClick={() => setScreen(m.key)}
-            style={{
-              background: m.gradient,
-              border: "none",
-              borderRadius: 20,
-              padding: "20px 22px",
-              color: "white",
-              cursor: "pointer",
-              transition: "transform .2s",
-              boxShadow: "0 6px 25px rgba(0,0,0,0.15)",
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              textAlign: "left",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          >
-            <span style={{ fontSize: 36 }}>{m.icon}</span>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 800 }}>{m.title}</div>
-              <div style={{ fontSize: 13, opacity: 0.9, marginTop: 2, lineHeight: 1.3 }}>{m.desc}</div>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      <div style={{ fontSize: 12, color: "#bbb", textAlign: "center", marginTop: 20 }}>
-        {SHAPES_2D.length} figuras 2D · {SHAPES_3D.length} volúmenes 3D · ¡A aprender! 📐
-      </div>
-      <a href="/" style={{ fontSize: 13, color: "#aaa", textDecoration: "none", textAlign: "center", alignSelf: "center" }}>← Volver al menú principal</a>
-    </div>
+    <GameShell
+      config={{
+        id: "figuras-geometricas",
+        title: "Figuras Geométricas",
+        icon: "📐",
+        gradient: "linear-gradient(180deg, #f0f0ff 0%, #fff5f5 50%, #f0f4ff 100%)",
+        titleGradient: "linear-gradient(135deg, #667eea, #764ba2)",
+        subtitle: "Aprende figuras 2D, polígonos y volúmenes 3D",
+        footer: `${SHAPES_2D.length} figuras 2D · ${SHAPES_3D.length} volúmenes 3D · ¡A aprender! 📐`,
+        emojis: ["🔺", "⬡", "🎲", "⭕", "🔷", "📐", "🌍", "🛑"],
+        modes: [
+          { key: "explore", icon: "🔍", title: "Explorar Figuras", desc: "Galería visual de figuras 2D y 3D con propiedades y fórmulas", gradient: "linear-gradient(135deg, #667eea, #764ba2)", component: ExploreMode },
+          { key: "learn", icon: "📚", title: "Aprende", desc: "Flashcards con figuras, fórmulas y datos curiosos", gradient: "linear-gradient(135deg, #f093fb, #f5576c)", component: FGLearnMode },
+          { key: "quiz", icon: "🧠", title: "Quiz", desc: "15 preguntas sobre figuras, fórmulas y propiedades", gradient: "linear-gradient(135deg, #4facfe, #00f2fe)", component: FGQuizMode },
+          { key: "challenge", icon: "⚡", title: "Desafío Relámpago", desc: "¡60 segundos para demostrar cuánto sabes!", gradient: "linear-gradient(135deg, #F9A825, #f12711)", component: FGChallengeMode },
+        ],
+      }}
+      progressHooks={{ saveQuiz, saveChallenge, saveLearned }}
+    />
   );
 }
-
-const gameCtn = {
-  fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-  maxWidth: 640,
-  margin: "0 auto",
-  padding: "24px 12px",
-  minHeight: "100vh",
-  background: "linear-gradient(180deg, #f0f0ff 0%, #fff5f5 50%, #f0f4ff 100%)",
-};
