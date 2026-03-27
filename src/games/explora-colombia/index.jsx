@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { geoMercator, geoPath } from "d3-geo";
-import useGameProgress from "../../hooks/useGameProgress";
+import useGameRewards from "../../hooks/useGameRewards";
 import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
 import { Confetti } from "../../components/game";
 import { shuffle, pill } from "../../components/game/utils";
@@ -304,7 +304,7 @@ function COChallengeMode(props) {
 
 /* =================== MAIN COMPONENT =================== */
 export default function ExploraColombia() {
-  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("explora-colombia");
+  const { saveQuiz, saveChallenge, saveLearned } = useGameRewards("explora-colombia");
 
   return (
     <GameShell

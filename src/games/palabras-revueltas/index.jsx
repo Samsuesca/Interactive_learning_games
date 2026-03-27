@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import useGameProgress from "../../hooks/useGameProgress";
+import useGameRewards from "../../hooks/useGameRewards";
 import GameShell from "../../engine/GameShell";
 import { Confetti, Stars, ProgressBar } from "../../components/game";
 import { shuffle, pill, circ } from "../../components/game/utils";
@@ -1041,7 +1041,7 @@ function ChallengeMode({ onBack, saveChallenge }) {
 /* ───────────────── MENÚ PRINCIPAL ───────────────── */
 
 export default function PalabrasRevueltas() {
-  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("palabras-revueltas");
+  const { saveQuiz, saveChallenge, saveLearned } = useGameRewards("palabras-revueltas");
 
   return (
     <GameShell

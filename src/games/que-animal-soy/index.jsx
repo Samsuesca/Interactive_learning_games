@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import useGameProgress from "../../hooks/useGameProgress";
+import useGameRewards from "../../hooks/useGameRewards";
 import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
 import { Confetti, Stars, ProgressBar } from "../../components/game";
 import { shuffle, pill } from "../../components/game/utils";
@@ -692,7 +692,7 @@ function AnimalQuizMode(props) {
 
 /* =================== MAIN COMPONENT =================== */
 export default function QueAnimalSoy() {
-  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("que-animal-soy");
+  const { saveQuiz, saveChallenge, saveLearned } = useGameRewards("que-animal-soy");
 
   return (
     <GameShell

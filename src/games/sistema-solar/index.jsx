@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import useGameProgress from "../../hooks/useGameProgress";
+import useGameRewards from "../../hooks/useGameRewards";
 import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
 import { Confetti } from "../../components/game";
 import { pill } from "../../components/game/utils";
@@ -610,7 +610,7 @@ function InfoRow({ label, value }) {
 
 // =================== MAIN COMPONENT ===================
 export default function SistemaSolar() {
-  const { progress, saveQuiz, saveChallenge, saveLearned } = useGameProgress("sistema-solar");
+  const { progress, saveQuiz, saveChallenge, saveLearned } = useGameRewards("sistema-solar");
 
   return (
     <GameShell

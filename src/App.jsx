@@ -1,8 +1,16 @@
-import { lazy, Suspense, useState, useEffect, useMemo } from "react";
+import { lazy, Suspense, useState, useEffect, useMemo, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import GameErrorBoundary from "./components/GameErrorBoundary";
 import { getAllProgress } from "./hooks/useGameProgress";
+import usePlayerProfile from "./hooks/usePlayerProfile";
+import useDailyLogin from "./hooks/useDailyLogin";
 import ACHIEVEMENTS from "./data/achievements";
+import AvatarDisplay from "./components/roblox/AvatarDisplay";
+import CoinDisplay from "./components/roblox/CoinDisplay";
+import LevelBadge from "./components/roblox/LevelBadge";
+import DailyLoginPopup from "./components/roblox/DailyLoginPopup";
+import LevelUpPopup from "./components/roblox/LevelUpPopup";
+import { calculateDailyLoginXP } from "./services/xpService";
 
 const ExploraColombia = lazy(() => import("./games/explora-colombia"));
 const CapitalesSudamerica = lazy(() => import("./games/capitales-sudamerica"));
@@ -15,6 +23,7 @@ const CapitalesEuropa = lazy(() => import("./games/capitales-europa"));
 const SistemaSolar = lazy(() => import("./games/sistema-solar"));
 const TablasMultiplicar = lazy(() => import("./games/tablas-multiplicar"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Profile = lazy(() => import("./pages/Profile"));
 
 const CATEGORIES = [
   { key: "all", label: "Todos", icon: "🎮" },
@@ -129,6 +138,8 @@ function TitleUpdater() {
       document.title = `${game.title} - Juegos para Aprender`;
     } else if (location.pathname === "/dashboard") {
       document.title = "Mi Progreso - Juegos para Aprender";
+    } else if (location.pathname === "/profile") {
+      document.title = "Mi Perfil - Juegos para Aprender";
     } else {
       document.title = "Juegos para Aprender";
     }
@@ -146,18 +157,18 @@ function LoadingSpinner() {
       justifyContent: "center",
       minHeight: "100vh",
       fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-      background: "linear-gradient(180deg, #fef9f0 0%, #fff5f5 50%, #f0f4ff 100%)",
+      background: "linear-gradient(180deg, #0a0a1a 0%, #1a1a3e 50%, #0f0f2e 100%)",
       gap: 16,
     }}>
       <div style={{
         width: 48,
         height: 48,
-        border: "4px solid #e0e0e0",
+        border: "4px solid rgba(102,126,234,0.2)",
         borderTopColor: "#764ba2",
         borderRadius: "50%",
         animation: "spin 0.8s linear infinite",
       }} />
-      <p style={{ color: "#888", fontSize: 15, margin: 0 }}>Cargando juego...</p>
+      <p style={{ color: "#8888bb", fontSize: 15, margin: 0 }}>Cargando juego...</p>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   );
@@ -167,16 +178,16 @@ function ProgressBadge({ progress }) {
   if (!progress || !progress.quizTotal) return null;
   return (
     <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-      <span style={{ background: "rgba(255,255,255,0.25)", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
+      <span style={{ background: "rgba(255,255,255,0.2)", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
         🧠 {progress.quizBest}/{progress.quizTotal}
       </span>
       {progress.challengeBest > 0 && (
-        <span style={{ background: "rgba(255,255,255,0.25)", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
+        <span style={{ background: "rgba(255,255,255,0.2)", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
           ⚡ {progress.challengeBest}
         </span>
       )}
       {progress.bestStreak > 0 && (
-        <span style={{ background: "rgba(255,255,255,0.25)", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
+        <span style={{ background: "rgba(255,255,255,0.2)", borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
           🔥 {progress.bestStreak}
         </span>
       )}
@@ -194,12 +205,28 @@ function AchievementSummary({ progress }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-      background: "linear-gradient(135deg, #667eea, #764ba2)",
-      borderRadius: 14, padding: "10px 18px", color: "white", fontSize: 13, fontWeight: 600,
+      background: "rgba(102,126,234,0.15)",
+      border: "1px solid rgba(102,126,234,0.3)",
+      borderRadius: 14, padding: "10px 18px", color: "#a5b4fc", fontSize: 13, fontWeight: 600,
     }}>
       <span>🏅 {count}/{total} logros</span>
-      <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.25)", borderRadius: 3, maxWidth: 120 }}>
-        <div style={{ width: `${(count / total) * 100}%`, height: "100%", background: "#FFD700", borderRadius: 3, transition: "width 0.5s" }} />
+      <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3, maxWidth: 120 }}>
+        <div style={{ width: `${(count / total) * 100}%`, height: "100%", background: "linear-gradient(90deg, #ffd700, #ffa000)", borderRadius: 3, transition: "width 0.5s" }} />
+      </div>
+    </div>
+  );
+}
+
+/* ===== Player Header Bar ===== */
+function PlayerHeader({ avatar, coins, xp }) {
+  return (
+    <div style={headerBar}>
+      <Link to="/profile" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+        <AvatarDisplay avatar={avatar} size={36} glow />
+      </Link>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <CoinDisplay coins={coins} compact />
+        <LevelBadge xp={xp} compact />
       </div>
     </div>
   );
@@ -209,7 +236,19 @@ function Home() {
   const [progress, setProgress] = useState({});
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
+  const { avatar, coins, xp, addCoins, addXP } = usePlayerProfile();
+  const daily = useDailyLogin();
+  const [levelUpData, setLevelUpData] = useState(null);
+
   useEffect(() => { setProgress(getAllProgress()); }, []);
+
+  const handleDailyClaim = useCallback(() => {
+    const { coins: reward } = daily.claim();
+    addCoins(reward);
+    const result = addXP(calculateDailyLoginXP());
+    if (result.leveledUp) setLevelUpData(result.newLevel);
+    daily.dismiss();
+  }, [daily, addCoins, addXP]);
 
   const filtered = useMemo(() => {
     let list = games;
@@ -225,35 +264,39 @@ function Home() {
 
   return (
     <div style={homeCtn}>
+      {/* Player Header */}
+      <PlayerHeader avatar={avatar} coins={coins} xp={xp} />
+
       <div style={{ textAlign: "center", marginBottom: 4 }}>
         <div style={{ fontSize: 56 }}>🎮</div>
         <h1 style={titleStyle}>Juegos para Aprender</h1>
-        <p style={{ fontSize: 16, color: "#777", margin: "4px 0 0" }}>
+        <p style={{ fontSize: 16, color: "#8888bb", margin: "4px 0 0" }}>
           ¡Elige un juego y empieza a aprender jugando!
         </p>
       </div>
 
-      {/* Dashboard + Achievement summary */}
+      {/* Dashboard + Profile + Achievement summary */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 420 }}>
-        <Link to="/dashboard" style={{ textDecoration: "none" }}>
-          <div style={{
-            background: "linear-gradient(135deg, #667eea, #764ba2)",
-            borderRadius: 16, padding: "14px 20px", color: "white",
-            display: "flex", alignItems: "center", gap: 12,
-            cursor: "pointer", boxShadow: "0 4px 15px rgba(102,126,234,0.3)",
-            transition: "transform 0.2s",
-          }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.02)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          >
-            <span style={{ fontSize: 28 }}>📊</span>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>Mi Progreso</div>
-              <div style={{ fontSize: 12, opacity: 0.85 }}>Estadísticas, logros y más</div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Link to="/dashboard" style={{ textDecoration: "none", flex: 1 }}>
+            <div style={navCard}>
+              <span style={{ fontSize: 24 }}>📊</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#e0e0ff" }}>Mi Progreso</div>
+                <div style={{ fontSize: 11, color: "#8888bb" }}>Estadísticas y logros</div>
+              </div>
             </div>
-            <span style={{ marginLeft: "auto", fontSize: 18, opacity: 0.7 }}>→</span>
-          </div>
-        </Link>
+          </Link>
+          <Link to="/profile" style={{ textDecoration: "none", flex: 1 }}>
+            <div style={{ ...navCard, borderColor: "rgba(255,215,0,0.3)" }}>
+              <span style={{ fontSize: 24 }}>👤</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#e0e0ff" }}>Mi Perfil</div>
+                <div style={{ fontSize: 11, color: "#8888bb" }}>Avatar y tienda</div>
+              </div>
+            </div>
+          </Link>
+        </div>
         <AchievementSummary progress={progress} />
       </div>
 
@@ -268,15 +311,16 @@ function Home() {
             width: "100%",
             padding: "12px 16px",
             borderRadius: 14,
-            border: "2px solid #e0e0e0",
+            border: "1px solid rgba(102,126,234,0.3)",
             fontSize: 15,
             outline: "none",
-            background: "white",
+            background: "rgba(30,30,63,0.8)",
+            color: "#e0e0ff",
             boxSizing: "border-box",
             transition: "border-color 0.2s",
           }}
           onFocus={(e) => (e.target.style.borderColor = "#667eea")}
-          onBlur={(e) => (e.target.style.borderColor = "#e0e0e0")}
+          onBlur={(e) => (e.target.style.borderColor = "rgba(102,126,234,0.3)")}
         />
       </div>
 
@@ -287,9 +331,9 @@ function Home() {
             key={c.key}
             onClick={() => setCategory(c.key)}
             style={{
-              background: category === c.key ? "linear-gradient(135deg,#667eea,#764ba2)" : "white",
-              color: category === c.key ? "white" : "#666",
-              border: category === c.key ? "none" : "2px solid #e0e0e0",
+              background: category === c.key ? "linear-gradient(135deg,#667eea,#764ba2)" : "rgba(255,255,255,0.05)",
+              color: category === c.key ? "white" : "#8888bb",
+              border: category === c.key ? "none" : "1px solid rgba(102,126,234,0.2)",
               borderRadius: 20,
               padding: "8px 14px",
               fontSize: 13,
@@ -299,7 +343,7 @@ function Home() {
               display: "flex",
               alignItems: "center",
               gap: 4,
-              boxShadow: category === c.key ? "0 3px 10px rgba(102,126,234,0.3)" : "none",
+              boxShadow: category === c.key ? "0 0 15px rgba(102,126,234,0.4)" : "none",
             }}
           >
             <span>{c.icon}</span> {c.label}
@@ -310,7 +354,7 @@ function Home() {
       {/* Games grid */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%", maxWidth: 420 }}>
         {filtered.length === 0 && (
-          <div style={{ textAlign: "center", color: "#999", padding: "24px 0", fontSize: 15 }}>
+          <div style={{ textAlign: "center", color: "#8888bb", padding: "24px 0", fontSize: 15 }}>
             No se encontraron juegos
           </div>
         )}
@@ -326,29 +370,31 @@ function Home() {
                   color: "white",
                   cursor: "pointer",
                   transition: "transform 0.2s, box-shadow 0.2s",
-                  boxShadow: "0 6px 25px rgba(0,0,0,0.15)",
+                  boxShadow: "0 0 20px rgba(0,0,0,0.3), 0 6px 25px rgba(0,0,0,0.2)",
                   display: "flex",
                   alignItems: "center",
                   gap: 18,
                   position: "relative",
                   overflow: "hidden",
                   animation: `fadeSlideIn 0.3s ease ${i * 0.05}s both`,
+                  border: "1px solid rgba(255,255,255,0.1)",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "scale(1.03)";
-                  e.currentTarget.style.boxShadow = "0 10px 35px rgba(0,0,0,0.25)";
+                  e.currentTarget.style.boxShadow = "0 0 30px rgba(102,126,234,0.4), 0 10px 35px rgba(0,0,0,0.3)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.boxShadow = "0 6px 25px rgba(0,0,0,0.15)";
+                  e.currentTarget.style.boxShadow = "0 0 20px rgba(0,0,0,0.3), 0 6px 25px rgba(0,0,0,0.2)";
                 }}
               >
                 {g.isNew && (
                   <div style={{
                     position: "absolute", top: 10, right: 12,
-                    background: "#FFD700", color: "#333",
+                    background: "linear-gradient(135deg, #ffd700, #ffa000)", color: "#1a1a3e",
                     fontSize: 10, fontWeight: 800, padding: "3px 8px",
                     borderRadius: 8, letterSpacing: 0.5,
+                    boxShadow: "0 0 10px rgba(255,215,0,0.4)",
                   }}>
                     NUEVO
                   </div>
@@ -365,7 +411,7 @@ function Home() {
         })}
       </div>
 
-      <div style={{ fontSize: 12, color: "#bbb", textAlign: "center", marginTop: 16 }}>
+      <div style={{ fontSize: 12, color: "#555", textAlign: "center", marginTop: 16 }}>
         Hecho con ❤️ para aprender jugando · {games.length} juegos
       </div>
 
@@ -375,6 +421,24 @@ function Home() {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+
+      {/* Daily Login Popup */}
+      {daily.showPopup && (
+        <DailyLoginPopup
+          streak={daily.streak}
+          reward={daily.reward}
+          onClaim={handleDailyClaim}
+          onDismiss={daily.dismiss}
+        />
+      )}
+
+      {/* Level Up Popup */}
+      {levelUpData && (
+        <LevelUpPopup
+          level={levelUpData}
+          onClose={() => setLevelUpData(null)}
+        />
+      )}
     </div>
   );
 }
@@ -387,6 +451,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
           {games.map((g) => (
             <Route key={g.path} path={g.path} element={
               <GameErrorBoundary icon={g.icon}>
@@ -404,9 +469,9 @@ const homeCtn = {
   fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
   maxWidth: 640,
   margin: "0 auto",
-  padding: "40px 16px",
+  padding: "24px 16px",
   minHeight: "100vh",
-  background: "linear-gradient(180deg, #fef9f0 0%, #fff5f5 50%, #f0f4ff 100%)",
+  background: "linear-gradient(180deg, #0a0a1a 0%, #1a1a3e 50%, #0f0f2e 100%)",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
@@ -417,7 +482,31 @@ const titleStyle = {
   fontSize: 32,
   fontWeight: 900,
   margin: 0,
-  background: "linear-gradient(135deg, #667eea, #764ba2)",
+  background: "linear-gradient(135deg, #667eea, #a855f7, #ff1493)",
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent",
+  textShadow: "none",
+};
+
+const headerBar = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  width: "100%",
+  maxWidth: 420,
+  padding: "8px 4px",
+  marginBottom: 8,
+};
+
+const navCard = {
+  background: "rgba(30,30,63,0.8)",
+  border: "1px solid rgba(102,126,234,0.3)",
+  borderRadius: 14,
+  padding: "12px 14px",
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  cursor: "pointer",
+  transition: "all 0.2s",
+  boxShadow: "0 0 10px rgba(102,126,234,0.1)",
 };

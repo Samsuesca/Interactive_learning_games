@@ -1,5 +1,5 @@
 import { useState, Fragment } from "react";
-import useGameProgress from "../../hooks/useGameProgress";
+import useGameRewards from "../../hooks/useGameRewards";
 import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
 import { OptionButton } from "../../components/game";
 import { pill } from "../../components/game/utils";
@@ -478,7 +478,7 @@ function TMChallengeMode(props) {
 
 export default function TablasMultiplicar() {
   const { progress, saveQuiz, saveChallenge, saveLearned } =
-    useGameProgress("tablas-multiplicar");
+    useGameRewards("tablas-multiplicar");
 
   return (
     <GameShell

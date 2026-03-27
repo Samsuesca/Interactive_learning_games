@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { geoMercator, geoPath } from "d3-geo";
-import useGameProgress from "../../hooks/useGameProgress";
+import useGameRewards from "../../hooks/useGameRewards";
 import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
 import { Confetti } from "../../components/game";
 import { shuffle, pill } from "../../components/game/utils";
@@ -270,7 +270,7 @@ function SAChallengeMode(props) {
 
 /* =================== MAIN COMPONENT =================== */
 export default function CapitalesSudamerica() {
-  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("capitales-sudamerica");
+  const { saveQuiz, saveChallenge, saveLearned } = useGameRewards("capitales-sudamerica");
 
   return (
     <GameShell

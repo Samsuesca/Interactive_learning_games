@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { geoNaturalEarth1, geoPath, geoGraticule } from "d3-geo";
-import useGameProgress from "../../hooks/useGameProgress";
+import useGameRewards from "../../hooks/useGameRewards";
 import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
 import { Confetti, Stars, ProgressBar } from "../../components/game";
 import { shuffle, pill } from "../../components/game/utils";
@@ -402,7 +402,7 @@ function MFChallengeMode(props) {
 
 /* =================== MAIN COMPONENT =================== */
 export default function MonumentosFamosos() {
-  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("monumentos-famosos");
+  const { saveQuiz, saveChallenge, saveLearned } = useGameRewards("monumentos-famosos");
 
   return (
     <GameShell

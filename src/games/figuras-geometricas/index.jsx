@@ -1,5 +1,5 @@
 import { useState } from "react";
-import useGameProgress from "../../hooks/useGameProgress";
+import useGameRewards from "../../hooks/useGameRewards";
 import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
 import { OptionButton } from "../../components/game";
 import { pill } from "../../components/game/utils";
@@ -738,7 +738,7 @@ function FGChallengeMode(props) {
 /* ───────── MAIN COMPONENT ───────── */
 
 export default function FigurasGeometricas() {
-  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("figuras-geometricas");
+  const { saveQuiz, saveChallenge, saveLearned } = useGameRewards("figuras-geometricas");
 
   return (
     <GameShell

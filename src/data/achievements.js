@@ -10,6 +10,7 @@ const ACHIEVEMENTS = [
     title: "Primera Pregunta",
     desc: "Completa tu primer quiz",
     category: "inicio",
+    rarity: "common",
     check: (p) => Object.values(p).some((g) => g.gamesPlayed > 0),
   },
   {
@@ -18,6 +19,7 @@ const ACHIEVEMENTS = [
     title: "Perfecto",
     desc: "Obtén puntuación perfecta en un quiz",
     category: "quiz",
+    rarity: "rare",
     check: (p) =>
       Object.values(p).some((g) => g.quizBest > 0 && g.quizBest === g.quizTotal),
   },
@@ -27,6 +29,7 @@ const ACHIEVEMENTS = [
     title: "En Llamas",
     desc: "Consigue una racha de 5 aciertos",
     category: "quiz",
+    rarity: "common",
     check: (p) => Object.values(p).some((g) => g.bestStreak >= 5),
   },
   {
@@ -35,6 +38,7 @@ const ACHIEVEMENTS = [
     title: "Imparable",
     desc: "Consigue una racha de 10 aciertos",
     category: "quiz",
+    rarity: "rare",
     check: (p) => Object.values(p).some((g) => g.bestStreak >= 10),
   },
   {
@@ -43,6 +47,7 @@ const ACHIEVEMENTS = [
     title: "Explorador",
     desc: "Juega 3 juegos diferentes",
     category: "general",
+    rarity: "common",
     check: (p) => Object.values(p).filter((g) => g.gamesPlayed > 0).length >= 3,
   },
   {
@@ -51,6 +56,7 @@ const ACHIEVEMENTS = [
     title: "Completista",
     desc: "Juega todos los juegos",
     category: "general",
+    rarity: "epic",
     check: (p) => Object.values(p).filter((g) => g.gamesPlayed > 0).length >= 7,
   },
   {
@@ -59,6 +65,7 @@ const ACHIEVEMENTS = [
     title: "Veloz",
     desc: "Consigue 5+ en modo desafío",
     category: "desafio",
+    rarity: "common",
     check: (p) => Object.values(p).some((g) => g.challengeBest >= 5),
   },
   {
@@ -67,6 +74,7 @@ const ACHIEVEMENTS = [
     title: "Relámpago",
     desc: "Consigue 10+ en modo desafío",
     category: "desafio",
+    rarity: "rare",
     check: (p) => Object.values(p).some((g) => g.challengeBest >= 10),
   },
   {
@@ -75,6 +83,7 @@ const ACHIEVEMENTS = [
     title: "Supersónico",
     desc: "Consigue 15+ en modo desafío",
     category: "desafio",
+    rarity: "epic",
     check: (p) => Object.values(p).some((g) => g.challengeBest >= 15),
   },
   {
@@ -83,6 +92,7 @@ const ACHIEVEMENTS = [
     title: "Estudiante",
     desc: "Marca 10 items como aprendidos",
     category: "aprender",
+    rarity: "common",
     check: (p) => sumField(p, "learnedCount") >= 10,
   },
   {
@@ -91,6 +101,7 @@ const ACHIEVEMENTS = [
     title: "Erudito",
     desc: "Marca 50 items como aprendidos",
     category: "aprender",
+    rarity: "rare",
     check: (p) => sumField(p, "learnedCount") >= 50,
   },
   {
@@ -99,6 +110,7 @@ const ACHIEVEMENTS = [
     title: "Jugador",
     desc: "Juega 10 partidas en total",
     category: "general",
+    rarity: "common",
     check: (p) => sumField(p, "gamesPlayed") >= 10,
   },
   {
@@ -107,6 +119,7 @@ const ACHIEVEMENTS = [
     title: "Veterano",
     desc: "Juega 25 partidas en total",
     category: "general",
+    rarity: "rare",
     check: (p) => sumField(p, "gamesPlayed") >= 25,
   },
   {
@@ -115,6 +128,7 @@ const ACHIEVEMENTS = [
     title: "Leyenda",
     desc: "Juega 50 partidas en total",
     category: "general",
+    rarity: "epic",
     check: (p) => sumField(p, "gamesPlayed") >= 50,
   },
   {
@@ -123,6 +137,7 @@ const ACHIEVEMENTS = [
     title: "Geógrafo",
     desc: "Puntuación perfecta en un quiz de geografía",
     category: "especial",
+    rarity: "epic",
     check: (p) =>
       [
         "explora-colombia",
@@ -138,6 +153,7 @@ const ACHIEVEMENTS = [
     title: "Rey del Conocimiento",
     desc: "Puntuación perfecta en 3 juegos diferentes",
     category: "especial",
+    rarity: "legendary",
     check: (p) =>
       Object.values(p).filter((g) => g.quizBest > 0 && g.quizBest === g.quizTotal)
         .length >= 3,
@@ -148,6 +164,7 @@ const ACHIEVEMENTS = [
     title: "Dedicado",
     desc: "Juega 5 partidas de un mismo juego",
     category: "general",
+    rarity: "common",
     check: (p) => Object.values(p).some((g) => g.gamesPlayed >= 5),
   },
   {
@@ -156,6 +173,7 @@ const ACHIEVEMENTS = [
     title: "Retador",
     desc: "Completa el desafío en 3 juegos",
     category: "desafio",
+    rarity: "rare",
     check: (p) => Object.values(p).filter((g) => g.challengeBest > 0).length >= 3,
   },
   {
@@ -164,6 +182,7 @@ const ACHIEVEMENTS = [
     title: "Aprendizaje Rápido",
     desc: "Marca como aprendido en 3 juegos",
     category: "aprender",
+    rarity: "common",
     check: (p) => Object.values(p).filter((g) => g.learnedCount > 0).length >= 3,
   },
   {
@@ -172,6 +191,7 @@ const ACHIEVEMENTS = [
     title: "Coleccionista",
     desc: "Desbloquea 10 logros",
     category: "especial",
+    rarity: "legendary",
     check: (_p, unlocked) => unlocked >= 10,
   },
 ];

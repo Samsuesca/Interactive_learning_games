@@ -69,7 +69,7 @@ export default function GameShell({ config, progressHooks }) {
               {config.title}
             </h1>
             {config.subtitle && (
-              <p style={{ fontSize: 15, color: "#777", margin: "4px 0 0" }}>{config.subtitle}</p>
+              <p style={{ fontSize: 15, color: "#ccc", margin: "4px 0 0" }}>{config.subtitle}</p>
             )}
           </div>
 
@@ -87,7 +87,8 @@ export default function GameShell({ config, progressHooks }) {
                   textAlign: "left",
                   cursor: "pointer",
                   transition: "transform 0.2s",
-                  boxShadow: "0 6px 25px rgba(0,0,0,0.15)",
+                  boxShadow: "0 0 15px rgba(0,0,0,0.3), 0 6px 25px rgba(0,0,0,0.15)",
+                  border: "1px solid rgba(255,255,255,0.1)",
                   display: "flex",
                   alignItems: "center",
                   gap: 16,
@@ -105,11 +106,11 @@ export default function GameShell({ config, progressHooks }) {
           </div>
 
           {config.footer && (
-            <div style={{ fontSize: 12, color: "#bbb", textAlign: "center", marginTop: 8 }}>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textAlign: "center", marginTop: 8 }}>
               {config.footer}
             </div>
           )}
-          <a href="/" style={{ fontSize: 13, color: "#aaa", textDecoration: "none", textAlign: "center" }}>
+          <a href="/" style={{ fontSize: 13, color: "rgba(165,180,252,0.7)", textDecoration: "none", textAlign: "center" }}>
             ← Volver al menú principal
           </a>
         </div>

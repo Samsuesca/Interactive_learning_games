@@ -2,19 +2,19 @@ export default function OptionButton({ text, selected, correct, onClick, childre
   const isCorrect = text === correct;
   const isSelected = selected === text;
 
-  let bg = "white",
-    bd = "#ddd",
-    cl = "#333";
+  let bg = "rgba(30,30,63,0.8)",
+    bd = "rgba(102,126,234,0.3)",
+    cl = "#e0e0ff";
 
   if (selected !== null) {
     if (isCorrect) {
-      bg = "#c8e6c9";
-      bd = "#66BB6A";
-      cl = "#2e7d32";
+      bg = "rgba(0,255,136,0.15)";
+      bd = "#00ff88";
+      cl = "#00ff88";
     } else if (isSelected) {
-      bg = "#ffcdd2";
-      bd = "#ef5350";
-      cl = "#c62828";
+      bg = "rgba(255,68,68,0.15)";
+      bd = "#ff4444";
+      cl = "#ff6b6b";
     }
   }
 
@@ -33,8 +33,8 @@ export default function OptionButton({ text, selected, correct, onClick, childre
         transition: "all 0.3s",
         transform: isSelected ? "scale(1.04)" : "scale(1)",
         boxShadow: isSelected
-          ? "0 4px 15px rgba(0,0,0,0.15)"
-          : "0 2px 8px rgba(0,0,0,0.06)",
+          ? `0 0 15px ${isCorrect ? "rgba(0,255,136,0.3)" : "rgba(255,68,68,0.3)"}`
+          : "0 0 8px rgba(102,126,234,0.1)",
       }}
     >
       {selected !== null && isCorrect && "✅ "}

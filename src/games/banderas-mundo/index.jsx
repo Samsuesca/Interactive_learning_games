@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import useGameProgress from "../../hooks/useGameProgress";
+import useGameRewards from "../../hooks/useGameRewards";
 import { GameShell, QuizMode, ChallengeMode, LearnMode } from "../../engine";
 import { Confetti, OptionButton } from "../../components/game";
 import { shuffle, pill } from "../../components/game/utils";
@@ -358,7 +358,7 @@ function BWChallengeMode(props) {
 
 /* =================== MAIN COMPONENT =================== */
 export default function BanderasMundo() {
-  const { saveQuiz, saveChallenge, saveLearned } = useGameProgress("banderas-mundo");
+  const { saveQuiz, saveChallenge, saveLearned } = useGameRewards("banderas-mundo");
 
   return (
     <GameShell
